@@ -1,0 +1,72 @@
+:root {
+  --font-body: 'Merriweather', 'Georgia', serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  
+  --color-bg: #fdfdfd;
+  --color-text: #2d2d2d;
+  --color-dim: #888;
+  --color-accent: #e57373; /* Subtle red/pink */
+  --color-success: #81c784;
+
+  --max-width: 700px;
+  --spacing-unit: 1rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* min-height: 100vh; */
+  width: 100%;
+}
+
+.app-container {
+  width: 100%;
+  max-width: var(--max-width);
+  padding: 2rem 1rem;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 2rem;
+  text-align: center;
+  font-family: var(--font-ui);
+}
+
+.title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0;
+}
+
+.date-display {
+  font-size: 0.9rem;
+  color: var(--color-dim);
+  margin-top: 0.5rem;
+}
+
+/* Utilities */
+.hidden { display: none; }
+.fade-in { animation: fadeIn 0.5s ease-in; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
