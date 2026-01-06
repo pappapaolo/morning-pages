@@ -7,9 +7,10 @@ import Sidebar from './components/Sidebar';
 import AboutModal from './components/AboutModal';
 import { storage } from './services/storage';
 
-const TODAY_DATE_KEY = new Date().toLocaleDateString('en-CA');
-
 function App() {
+  // Initialize date once on mount to lock the session, preventing midnight shifts
+  const [currentDateKey, setCurrentDateKey] = useState(() => new Date().toLocaleDateString('en-CA'));
+
   const [text, setText] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +34,7 @@ function App() {
   // Load data
   useEffect(() => {
     const init = async () => {
-      const savedText = await storage.getEntry(TODAY_DATE_KEY);
+      const savedText = await storage.getEntry(currentDateKey);
       if (savedText) {
         setText(savedText);
         const count = calculateWordCount(savedText);
@@ -52,7 +53,7 @@ function App() {
       setIsLoading(false);
     };
     init();
-  }, []);
+  }, [currentDateKey]);
 
   // Save & Logic
   useEffect(() => {
@@ -77,7 +78,7 @@ function App() {
             origin: { y: 0.6 },
             colors: ['#e57373', '#81c784', '#e0e0e0']
           });
-          storage.updateStreak(TODAY_DATE_KEY).then(s => setStreak(s.current));
+          storage.updateStreak(currentDateKey).then(s => setStreak(s.current));
         }
       }
     };
@@ -88,18 +89,22 @@ function App() {
 
 
     const timeoutId = setTimeout(() => {
-      storage.saveEntry(TODAY_DATE_KEY, text);
+      storage.saveEntry(currentDateKey, text);
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [text, wordCount, isLoading, milestonesReached]);
+  }, [text, wordCount, isLoading, milestonesReached, currentDateKey, startTime]);
 
   const handleTextChange = (newText) => {
     setText(newText);
     setWordCount(calculateWordCount(newText));
   };
 
-  const todayStr = new Date().toLocaleDateString('en-US', {
+  // Derive display string from the locked currentDateKey
+  // We have YYYY-MM-DD, need to create a date object safely
+  // Adding 'T12:00:00' to avoid timezone shifts when parsing YYYY-MM-DD
+  const dateObj = new Date(currentDateKey + 'T12:00:00');
+  const displayDateStr = dateObj.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -117,12 +122,12 @@ function App() {
       <ProgressBar current={wordCount} target={750} />
 
       <Sidebar
-        currentDate={TODAY_DATE_KEY}
+        currentDate={currentDateKey}
         onSelectDate={async (dateStr) => {
-          // Very simple routing: load content into editor
-          const content = await storage.getEntry(dateStr);
-          setText(content || '');
-          setWordCount(calculateWordCount(content || ''));
+          // Update the current context to the selected date
+          // This allows viewing/editing past entries essentially by "traveling" to that date
+          setCurrentDateKey(dateStr);
+          // We don't need to manually set text here because the useEffect[currentDateKey] will trigger reload
         }}
         onOpenAbout={() => setShowAbout(true)}
       />
@@ -134,7 +139,7 @@ function App() {
 
       <header className="header">
         <h1 className="title">Morning Pages</h1>
-        <div className="date-display">{todayStr}</div>
+        <div className="date-display">{displayDateStr}</div>
       </header>
 
       <main>
@@ -152,6 +157,9 @@ function App() {
           streak={streak}
           startTime={startTime}
         />
+
+        {/* Spacer to allow scrolling past the editor content */}
+        <div className="spacer"></div>
       </main>
 
       <style>{`
@@ -181,7 +189,7 @@ function App() {
             margin-bottom: 2rem;
             font-family: var(--font-ui);
             padding: 2rem;
-            background: var(--color-bg-sidebar); /* Use reusable bg or create a specific one if needed, sidebar bg is subte enough */
+            background: var(--color-bg-sidebar); 
             border-radius: 8px;
         }
         .header {
@@ -190,10 +198,10 @@ function App() {
             align-items: baseline;
             width: 100%;
             margin-bottom: 2rem;
-            font-family: var(--font-body); /* Shared font */
+            font-family: var(--font-body); 
         }
         .title {
-            font-family: var(--font-body); /* Force serif */
+            font-family: var(--font-body); 
             text-transform: none;
             font-size: 1.15rem;
             color: var(--color-text);
@@ -202,10 +210,14 @@ function App() {
             letter-spacing: normal;
         }
         .date-display {
-            font-family: var(--font-body); /* Shared font */
-            font-size: 1.15rem; /* Matches editor */
+            font-family: var(--font-body); 
+            font-size: 1.15rem; 
             color: var(--color-dim);
             margin: 0;
+        }
+        .spacer {
+            height: 50vh;
+            width: 100%;
         }
       `}</style>
     </div>

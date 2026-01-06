@@ -36,7 +36,7 @@ const Editor = ({ value, onChange, placeholder = "Clear your mind..." }) => {
         .editor-container {
           width: 100%;
           margin-top: 1rem;
-          padding-bottom: 50vh; 
+          /* padding-bottom removed, handled by spacer */
           cursor: text;
         }
         .editor-content {

@@ -124,8 +124,8 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             background: var(--color-bg-hover);
         }
         .entry-item.active {
-            background: var(--color-accent);
-            color: white;
+            background: var(--color-bg-active);
+            color: var(--color-text);
         }
         .empty {
             color: var(--color-dim);
