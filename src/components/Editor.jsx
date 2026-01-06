@@ -38,7 +38,7 @@ const Editor = ({ value, onChange, placeholder = "Clear your mind..." }) => {
           background: transparent;
           font-family: var(--font-body);
           font-size: 1.15rem;
-          line-height: 1.8;
+          line-height: 2.0;
           color: var(--color-text);
           padding: 0;
           overflow: hidden;

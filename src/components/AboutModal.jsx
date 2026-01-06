@@ -57,6 +57,7 @@ const AboutModal = ({ onClose }) => {
             cursor: pointer;
             color: var(--color-icon);
         }
+        p { margin-bottom: 1.2rem; }
         h2 { margin-top: 0; color: var(--color-text); }
         h3 { margin-top: 1.5rem; font-size: 1.1rem; }
         ul { padding-left: 1.2rem; }
