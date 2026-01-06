@@ -45,7 +45,7 @@ const Editor = ({ value, onChange, placeholder = "Clear your mind..." }) => {
           background: transparent;
           font-family: var(--font-body);
           font-size: 1.15rem;
-          line-height: 1.8;
+          line-height: 1.6; /* Tighter line spacing */
           color: var(--color-text);
           min-height: 50vh;
           white-space: pre-wrap; /* Preserve whitespace logic */
@@ -58,8 +58,8 @@ const Editor = ({ value, onChange, placeholder = "Clear your mind..." }) => {
         }
         /* Style paragraphs if they exist, though simple contentEditable often makes divs */
         .editor-content > div, .editor-content > p {
-            margin-bottom: 2em; /* Distinct paragraph gap > line-height */
-            min-height: 1.5em; /* Ensure empty lines have height */
+            margin-bottom: 2.5em; /* MUCH larger than line-height (1.6) */
+            min-height: 1.6em; /* Ensure empty lines have height */
         }
       `}</style>
     </div>

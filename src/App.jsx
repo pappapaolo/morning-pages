@@ -196,6 +196,10 @@ function App() {
             background: var(--color-bg-sidebar); 
             border-radius: 8px;
         }
+        .done-message h2 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
         .header {
             display: flex;
             justify-content: space-between;
