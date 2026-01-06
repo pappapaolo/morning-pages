@@ -74,7 +74,7 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             font-size: 1.5rem;
             line-height: 1; /* Ensure no extra height */
             cursor: pointer;
-            color: #ccc;
+            color: var(--color-icon);
             transition: color 0.3s;
         }
         .sidebar-toggle:hover { color: var(--color-text); }
@@ -85,8 +85,8 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             left: 0;
             height: 100vh;
             width: 250px;
-            background: #f9f9f9;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            background: var(--color-bg-sidebar);
+            box-shadow: var(--shadow-sidebar);
             z-index: 250;
             transform: translateX(-100%);
             transition: transform 0.3s ease;
@@ -106,7 +106,7 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             color: var(--color-dim);
             margin-bottom: 2rem;
             padding-bottom: 0.5rem;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--color-border);
         }
         .entry-list {
             flex: 1;
@@ -121,20 +121,20 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             transition: background 0.2s;
         }
         .entry-item:hover {
-            background: #eee;
+            background: var(--color-bg-hover);
         }
         .entry-item.active {
             background: var(--color-accent);
             color: white;
         }
         .empty {
-            color: #aaa;
+            color: var(--color-dim);
             font-style: italic;
             font-size: 0.9rem;
         }
         .sidebar-footer {
             margin-top: auto;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--color-border);
             padding-top: 1rem;
         }
         .about-link {

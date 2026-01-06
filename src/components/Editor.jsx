@@ -45,7 +45,7 @@ const Editor = ({ value, onChange, placeholder = "Clear your mind..." }) => {
           min-height: 50vh; 
         }
         .editor-textarea::placeholder {
-          color: #eee;
+          color: var(--color-placeholder);
           font-style: italic;
         }
       `}</style>

@@ -160,8 +160,8 @@ function App() {
             top: 20px;
             left: 50%;
             transform: translateX(-50%) translateY(-100px);
-            background: #333;
-            color: #fff;
+            background: var(--color-toast-bg);
+            color: var(--color-toast-text);
             padding: 10px 20px;
             border-radius: 20px;
             font-size: 0.9rem;
@@ -181,7 +181,7 @@ function App() {
             margin-bottom: 2rem;
             font-family: var(--font-ui);
             padding: 2rem;
-            background: #f1f8e9;
+            background: var(--color-bg-sidebar); /* Use reusable bg or create a specific one if needed, sidebar bg is subte enough */
             border-radius: 8px;
         }
         .header {
@@ -204,7 +204,7 @@ function App() {
         .date-display {
             font-family: var(--font-body); /* Shared font */
             font-size: 1.15rem; /* Matches editor */
-            color: #ccc; /* Lighter */
+            color: var(--color-dim);
             margin: 0;
         }
       `}</style>

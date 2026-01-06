@@ -36,7 +36,7 @@ const AboutModal = ({ onClose }) => {
             z-index: 1000;
         }
         .modal-content {
-            background: #fff;
+            background: var(--color-bg);
             padding: 2rem;
             border-radius: 8px;
             max-width: 600px;
@@ -55,7 +55,7 @@ const AboutModal = ({ onClose }) => {
             background: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: #aaa;
+            color: var(--color-icon);
         }
         h2 { margin-top: 0; color: var(--color-text); }
         h3 { margin-top: 1.5rem; font-size: 1.1rem; }
@@ -64,8 +64,8 @@ const AboutModal = ({ onClose }) => {
             margin-top: 2rem;
             font-style: italic;
             font-size: 0.9rem;
-            color: #888;
-            border-top: 1px solid #eee;
+            color: var(--color-dim);
+            border-top: 1px solid var(--color-border);
             padding-top: 1rem;
         }
       `}</style>
