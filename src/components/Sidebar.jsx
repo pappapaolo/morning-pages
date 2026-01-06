@@ -66,7 +66,7 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             <style>{`
         .sidebar-toggle {
             position: fixed;
-            top: 32px; /* Matched to app-container padding (2rem) */
+            top: 25px; /* Moved up for optical alignment */
             left: 20px;
             z-index: 300;
             background: transparent;
