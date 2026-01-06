@@ -25,7 +25,90 @@ function App() {
     return str.trim().split(/\s+/).filter(w => w.length > 0).length;
   };
 
-  // ... (skip lines to render)
+  const triggerToast = (msg) => {
+    setShowToast(msg);
+    setTimeout(() => setShowToast(null), 3000);
+  };
+
+  // Load data
+  useEffect(() => {
+    const init = async () => {
+      const savedText = await storage.getEntry(TODAY_DATE_KEY);
+      if (savedText) {
+        setText(savedText);
+        const count = calculateWordCount(savedText);
+        setWordCount(count);
+        // Re-populate milestones so we don't spam toasts on reload
+        const reached = new Set();
+        if (count >= 250) reached.add(250);
+        if (count >= 500) reached.add(500);
+        if (count >= 750) reached.add(750);
+        setMilestonesReached(reached);
+      }
+
+      const streakInfo = await storage.getStreak();
+      setStreak(streakInfo.current);
+
+      setIsLoading(false);
+    };
+    init();
+  }, []);
+
+  // Save & Logic
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!startTime && text.length > 0) {
+      setStartTime(Date.now());
+    }
+
+    // Milestones Logic
+    // Pages roughly: 250, 500, 750
+    const checkMilestone = (target, msg) => {
+      if (wordCount >= target && !milestonesReached.has(target)) {
+        triggerToast(msg);
+        setMilestonesReached(prev => new Set(prev).add(target));
+
+        // Confetti only for the final goal
+        if (target === 750) {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#e57373', '#81c784', '#e0e0e0']
+          });
+          storage.updateStreak(TODAY_DATE_KEY).then(s => setStreak(s.current));
+        }
+      }
+    };
+
+    checkMilestone(250, "1 Page Complete");
+    checkMilestone(500, "2 Pages Complete");
+    checkMilestone(750, "3 Pages - Morning Pages Complete!");
+
+
+    const timeoutId = setTimeout(() => {
+      storage.saveEntry(TODAY_DATE_KEY, text);
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [text, wordCount, isLoading, milestonesReached]);
+
+  const handleTextChange = (newText) => {
+    setText(newText);
+    setWordCount(calculateWordCount(newText));
+  };
+
+  const todayStr = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  if (isLoading) return <div className="loading">Loading...</div>;
+
+  const isDone = wordCount >= 750;
 
   return (
     <div className="app-container">
