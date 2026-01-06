@@ -1,52 +1,65 @@
 import React, { useEffect, useRef } from 'react';
 
 const Editor = ({ value, onChange, placeholder = "Clear your mind..." }) => {
-  const textareaRef = useRef(null);
+  const contentRef = useRef(null);
 
-  // Auto-resize textarea
+  // Sync value from props only if drastically different from current innerText to avoid cursor jumping
+  // For a simple implementation, we can trust local state for typing and only sync on load
   useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
+    if (contentRef.current && value) {
+      const currentText = contentRef.current.innerText;
+      // Only update if empty or significantly different (e.g. initial load)
+      if (currentText.trim() === '' && value.length > 0) {
+        contentRef.current.innerText = value;
+      }
     }
   }, [value]);
 
+  const handleInput = (e) => {
+    if (onChange) {
+      onChange(e.currentTarget.innerText);
+    }
+  };
+
   return (
     <div className="editor-container">
-      <textarea
-        ref={textareaRef}
-        className="editor-textarea"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoFocus
-        spellCheck="false"
+      <div
+        ref={contentRef}
+        className="editor-content"
+        contentEditable
+        onInput={handleInput}
+        suppressContentEditableWarning={true}
+        data-placeholder={placeholder}
       />
+
       <style>{`
         .editor-container {
           width: 100%;
           margin-top: 1rem;
-          padding-bottom: 50vh; /* Huge padding at bottom */
+          padding-bottom: 50vh; 
           cursor: text;
         }
-        .editor-textarea {
+        .editor-content {
           width: 100%;
-          border: none;
           outline: none;
-          resize: none;
           background: transparent;
           font-family: var(--font-body);
           font-size: 1.15rem;
-          line-height: 2.0;
+          line-height: 1.8;
           color: var(--color-text);
-          padding: 0;
-          overflow: hidden;
-          min-height: 50vh; 
+          min-height: 50vh;
+          white-space: pre-wrap; /* Preserve whitespace logic */
         }
-        .editor-textarea::placeholder {
+        .editor-content:empty::before {
+          content: attr(data-placeholder);
           color: var(--color-placeholder);
           font-style: italic;
+          cursor: text;
+        }
+        /* Style paragraphs if they exist, though simple contentEditable often makes divs */
+        .editor-content > div, .editor-content > p {
+            margin-bottom: 1.5em; /* The requested spacing */
+            min-height: 1.5em; /* Ensure empty lines have height */
         }
       `}</style>
     </div>

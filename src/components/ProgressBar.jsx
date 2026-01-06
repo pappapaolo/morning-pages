@@ -59,7 +59,7 @@ const ProgressBar = ({ current, target = 750 }) => {
         }
         .progress-bar.complete {
           background-color: var(--color-success);
-          box-shadow: 0 0 8px var(--color-success);
+          box-shadow: none;
         }
       `}</style>
     </div>
