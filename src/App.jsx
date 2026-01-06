@@ -194,7 +194,7 @@ function App() {
         }
         .title {
             text-transform: none;
-            font-size: 1rem;
+            font-size: 1.15rem; /* Matches editor */
             color: var(--color-text);
             margin: 0;
             font-weight: normal;
@@ -202,7 +202,7 @@ function App() {
         }
         .date-display {
             font-family: var(--font-body); /* Shared font */
-            font-size: 1.1rem; /* Shared size */
+            font-size: 1.15rem; /* Matches editor */
             color: #ccc; /* Lighter */
             margin: 0;
         }
