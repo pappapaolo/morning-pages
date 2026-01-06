@@ -55,9 +55,11 @@ const ProgressBar = ({ current, target = 750 }) => {
           background-color: var(--color-accent);
           transition: width 0.3s ease-out, background-color 0.5s;
           width: 0%;
+          box-shadow: 0 0 8px var(--color-accent);
         }
         .progress-bar.complete {
           background-color: var(--color-success);
+          box-shadow: 0 0 8px var(--color-success);
         }
       `}</style>
     </div>
