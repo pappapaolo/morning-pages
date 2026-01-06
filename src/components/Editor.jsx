@@ -58,8 +58,9 @@ const Editor = ({ value, onChange, placeholder = "Clear your mind..." }) => {
         }
         /* Style paragraphs (divs, p, or generic blocks created by enter) */
         .editor-content > div, .editor-content > p {
-            margin-bottom: 2em; /* Distinctly larger than 1.8em line-height */
-            min-height: 1.8em; 
+            margin-top: 2em; 
+            margin-bottom: 2em;
+            min-height: 1.6em; 
         }
       `}</style>
     </div>
