@@ -194,10 +194,11 @@ function App() {
         }
         .title {
             text-transform: none;
-            font-size: 1.1rem; /* Shared size */
-            color: var(--color-text); /* Darker */
+            font-size: 1rem;
+            color: var(--color-text);
             margin: 0;
-            font-weight: 600;
+            font-weight: normal;
+            letter-spacing: normal;
         }
         .date-display {
             font-family: var(--font-body); /* Shared font */
