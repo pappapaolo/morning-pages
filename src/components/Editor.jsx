@@ -58,7 +58,7 @@ const Editor = ({ value, onChange, placeholder = "Clear your mind..." }) => {
         }
         /* Style paragraphs if they exist, though simple contentEditable often makes divs */
         .editor-content > div, .editor-content > p {
-            margin-bottom: 1.5em; /* The requested spacing */
+            margin-bottom: 2em; /* Distinct paragraph gap > line-height */
             min-height: 1.5em; /* Ensure empty lines have height */
         }
       `}</style>
