@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../services/storage';
 
-const Sidebar = ({ currentDate, onSelectDate }) => {
+const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [entries, setEntries] = useState([]);
 
@@ -57,6 +57,10 @@ const Sidebar = ({ currentDate, onSelectDate }) => {
                         </div>
                     ))}
                 </div>
+
+                <div className="sidebar-footer">
+                    <button className="about-link" onClick={onOpenAbout}>About & SEO</button>
+                </div>
             </div>
 
             <style>{`
@@ -88,6 +92,8 @@ const Sidebar = ({ currentDate, onSelectDate }) => {
             padding: 80px 20px 20px 20px;
             font-family: var(--font-ui);
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
         .sidebar.open {
             transform: translateX(0);
@@ -100,6 +106,10 @@ const Sidebar = ({ currentDate, onSelectDate }) => {
             margin-bottom: 2rem;
             padding-bottom: 0.5rem;
             border-bottom: 1px solid #eee;
+        }
+        .entry-list {
+            flex: 1;
+            overflow-y: auto;
         }
         .entry-item {
             padding: 10px;
@@ -120,6 +130,20 @@ const Sidebar = ({ currentDate, onSelectDate }) => {
             color: #aaa;
             font-style: italic;
             font-size: 0.9rem;
+        }
+        .sidebar-footer {
+            margin-top: auto;
+            border-top: 1px solid #eee;
+            padding-top: 1rem;
+        }
+        .about-link {
+            background: none;
+            border: none;
+            color: var(--color-dim);
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 0;
         }
       `}</style>
         </>
