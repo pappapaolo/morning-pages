@@ -66,14 +66,14 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             <style>{`
         .sidebar-toggle {
             position: fixed;
-            top: 20px;
+            top: 36px;
             left: 20px;
             z-index: 300;
             background: transparent;
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: var(--color-dim);
+            color: #ccc;
             transition: color 0.3s;
         }
         .sidebar-toggle:hover { color: var(--color-text); }
