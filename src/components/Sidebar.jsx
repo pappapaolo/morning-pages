@@ -41,7 +41,6 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             </button>
 
             <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-                <h3>History</h3>
                 <div className="entry-list">
                     {entries.length === 0 && <p className="empty">No past pages.</p>}
                     {entries.map(e => (
@@ -98,15 +97,6 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
         }
         .sidebar.open {
             transform: translateX(0);
-        }
-        .sidebar h3 {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--color-dim);
-            margin-bottom: 2rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--color-border);
         }
         .entry-list {
             flex: 1;

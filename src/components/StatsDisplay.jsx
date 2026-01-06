@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const StatsDisplay = ({ wordCount, streak, startTime }) => {
+const StatsDisplay = ({ wordCount, sessionWords, streak, startTime }) => {
   const [wpm, setWpm] = useState(0);
   const [elapsed, setElapsed] = useState('0:00');
 
@@ -12,7 +12,8 @@ const StatsDisplay = ({ wordCount, streak, startTime }) => {
       const diffMinutes = (now - startTime) / 60000;
 
       if (diffMinutes > 0) {
-        setWpm(Math.round(wordCount / diffMinutes));
+        // Use sessionWords (words typed since start) instead of total wordCount
+        setWpm(Math.round(sessionWords / diffMinutes));
       }
 
       const totalSeconds = Math.floor((now - startTime) / 1000);
@@ -23,7 +24,7 @@ const StatsDisplay = ({ wordCount, streak, startTime }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [startTime, wordCount]);
+  }, [startTime, wordCount, sessionWords]);
 
   return (
     <div className="stats-container">

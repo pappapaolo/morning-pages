@@ -15,6 +15,7 @@ function App() {
   const [wordCount, setWordCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [startTime, setStartTime] = useState(null);
+  const [startWordCount, setStartWordCount] = useState(0);
   const [streak, setStreak] = useState(0);
 
   // Milestones tracking to avoid re-triggering
@@ -61,6 +62,8 @@ function App() {
 
     if (!startTime && text.length > 0) {
       setStartTime(Date.now());
+      // Track how many words we started with to calculate WPM correctly for *this* session
+      setStartWordCount(wordCount);
     }
 
     // Milestones Logic
@@ -154,6 +157,7 @@ function App() {
 
         <StatsDisplay
           wordCount={wordCount}
+          sessionWords={Math.max(0, wordCount - startWordCount)}
           streak={streak}
           startTime={startTime}
         />

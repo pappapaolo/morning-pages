@@ -67,7 +67,7 @@ html {
 
 .title {
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: normal;
   color: var(--color-dim);
   text-transform: uppercase;
   letter-spacing: 2px;
