@@ -66,12 +66,13 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             <style>{`
         .sidebar-toggle {
             position: fixed;
-            top: 36px;
+            top: 32px; /* Matched to app-container padding (2rem) */
             left: 20px;
             z-index: 300;
             background: transparent;
             border: none;
             font-size: 1.5rem;
+            line-height: 1; /* Ensure no extra height */
             cursor: pointer;
             color: #ccc;
             transition: color 0.3s;

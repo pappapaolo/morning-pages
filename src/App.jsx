@@ -193,8 +193,9 @@ function App() {
             font-family: var(--font-body); /* Shared font */
         }
         .title {
+            font-family: var(--font-body); /* Force serif */
             text-transform: none;
-            font-size: 1.15rem; /* Matches editor */
+            font-size: 1.15rem;
             color: var(--color-text);
             margin: 0;
             font-weight: normal;
