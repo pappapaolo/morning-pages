@@ -25,6 +25,7 @@ function App() {
   const [showToast, setShowToast] = useState(null); // Message or null
   const [showAbout, setShowAbout] = useState(false);
   const [showRescueModal, setShowRescueModal] = useState(false);
+  const [programProgress, setProgramProgress] = useState({ week: 1, day: 1 });
 
   const calculateWordCount = (str) => {
     return str.trim().split(/\s+/).filter(w => w.length > 0).length;
@@ -57,6 +58,37 @@ function App() {
 
       const streakInfo = await storage.getStreak();
       setStreak(streakInfo.current);
+
+      // Calculate Program Progress
+      // Find the earliest date key to establish "Day 1"
+      const allKeys = await storage.getAllKeys();
+      const dateKeys = allKeys
+        .filter(k => k.startsWith('morning_page_'))
+        .map(k => k.replace('morning_page_', ''))
+        .sort(); // String sort works for YYYY-MM-DD
+
+      let startDate = new Date(); // Default to today if no data
+      if (dateKeys.length > 0) {
+        startDate = new Date(dateKeys[0] + 'T12:00:00'); // No timezone shift
+      }
+
+      // Compare current selected date (currentDateKey) vs start date
+      // This ensures if I look at past entries, the "Week X" context might be wrong? 
+      // Actually user probably wants "My current progress" regardless of which day they are editing.
+      // But contextually "Day 3" makes most sense relative to the day being edited.
+      // Let's stick to "Today's" progress for now, using the current real time date, 
+      // OR use the currentDateKey to show "This was Week 1 Day 3".
+      // User said: "week one of 12" -> implies current status. 
+      // Let's use the actual Today vs StartDate.
+
+      const paramDate = new Date(); // Today
+      const diffTime = Math.abs(paramDate - startDate);
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      const currentWeek = Math.floor(diffDays / 7) + 1;
+      const currentDay = (diffDays % 7) + 1;
+
+      setProgramProgress({ week: currentWeek, day: currentDay });
 
       setIsLoading(false);
     };
@@ -221,7 +253,11 @@ function App() {
       </header>
 
       <main>
-        <Editor value={text} onChange={handleTextChange} />
+        <Editor
+          value={text}
+          onChange={handleTextChange}
+          programProgress={programProgress}
+        />
 
         {isDone && (
           <div className="done-message fade-in">
