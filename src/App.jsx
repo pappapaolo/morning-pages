@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar';
 import AboutModal from './components/AboutModal';
 import { storage } from './services/storage';
 import { Analytics } from "@vercel/analytics/react";
+import RescueModal from './components/RescueModal';
 
 function App() {
   // Initialize date once on mount to lock the session, preventing midnight shifts
@@ -23,6 +24,7 @@ function App() {
   const [milestonesReached, setMilestonesReached] = useState(new Set());
   const [showToast, setShowToast] = useState(null); // Message or null
   const [showAbout, setShowAbout] = useState(false);
+  const [showRescueModal, setShowRescueModal] = useState(false);
 
   const calculateWordCount = (str) => {
     return str.trim().split(/\s+/).filter(w => w.length > 0).length;
@@ -36,18 +38,22 @@ function App() {
   // Load data
   useEffect(() => {
     const init = async () => {
+      setIsLoading(true); // Ensure loading state while fetching
+
       const savedText = await storage.getEntry(currentDateKey);
-      if (savedText) {
-        setText(savedText);
-        const count = calculateWordCount(savedText);
-        setWordCount(count);
-        // Re-populate milestones so we don't spam toasts on reload
-        const reached = new Set();
-        if (count >= 250) reached.add(250);
-        if (count >= 500) reached.add(500);
-        if (count >= 750) reached.add(750);
-        setMilestonesReached(reached);
-      }
+
+      // Always set text, even if empty, to ensure clean state
+      setText(savedText || '');
+
+      const count = calculateWordCount(savedText || '');
+      setWordCount(count);
+
+      // Re-populate milestones
+      const reached = new Set();
+      if (count >= 250) reached.add(250);
+      if (count >= 500) reached.add(500);
+      if (count >= 750) reached.add(750);
+      setMilestonesReached(reached);
 
       const streakInfo = await storage.getStreak();
       setStreak(streakInfo.current);
@@ -56,6 +62,33 @@ function App() {
     };
     init();
   }, [currentDateKey]);
+
+  // Rescue Check (Run once on mount)
+  useEffect(() => {
+    const checkRescue = async () => {
+      // Logic: If today is "fresh" launch (not just a date switch), check yesterday
+      // For simplicity, we just check "yesterday" relative to the INITIAL load date
+      // We already have currentDateKey initialized to "today" on mount.
+
+      // Calculate yesterday
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+      // Check if yesterday is incomplete
+      const yesterdayText = await storage.getEntry(yesterdayStr);
+      const yesterdayCount = calculateWordCount(yesterdayText);
+
+      // If incomplete (< 750 words) and not empty (started but failed) OR empty (missed entirely)
+      // Actually, user wants to save streak. So if < 750, offer rescue.
+      if (yesterdayCount < 750) {
+        setShowRescueModal(true);
+      }
+    };
+
+    checkRescue();
+  }, []); // Run once
 
   // Save & Logic
   useEffect(() => {
@@ -118,13 +151,32 @@ function App() {
     day: 'numeric'
   });
 
-  if (isLoading) return <div className="loading">Loading...</div>;
+  if (isLoading && !text) return <div className="loading">Loading...</div>; // Show loading if no text yet
 
   const isDone = wordCount >= 750;
+
+  const handleRescue = () => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+    setIsLoading(true);
+    setText(''); // Clear immediately to prevent overwrite
+    setCurrentDateKey(yesterdayStr);
+    setShowRescueModal(false);
+  };
 
   return (
     <div className="app-container">
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+
+      {showRescueModal && (
+        <RescueModal
+          onRescue={handleRescue}
+          onSkip={() => setShowRescueModal(false)}
+        />
+      )}
 
       <ProgressBar current={wordCount} target={750} />
 
@@ -135,8 +187,12 @@ function App() {
         onSelectDate={async (dateStr) => {
           // Update the current context to the selected date
           // This allows viewing/editing past entries essentially by "traveling" to that date
+
+          // FIX: Set loading and clear text BEFORE changing key to prevent race condition
+          setIsLoading(true);
+          setText('');
+
           setCurrentDateKey(dateStr);
-          // We don't need to manually set text here because the useEffect[currentDateKey] will trigger reload
         }}
         onOpenAbout={() => setShowAbout(true)}
       />
