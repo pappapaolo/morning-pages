@@ -187,18 +187,17 @@ function App() {
             opacity: 1;
         }
         .done-message {
-            text-align: center;
+            text-align: left;
             color: var(--color-success);
-            margin-top: 2rem;
-            margin-bottom: 2rem;
+            margin-top: 2em;
+            margin-bottom: 2em;
             font-family: var(--font-ui);
-            padding: 2rem;
-            background: var(--color-bg-sidebar); 
-            border-radius: 8px;
+            /* Removed box styling as requested */
         }
         .done-message h2 {
             font-size: 1.1rem;
             margin-bottom: 0.5rem;
+            font-weight: normal;
         }
         .header {
             display: flex;
