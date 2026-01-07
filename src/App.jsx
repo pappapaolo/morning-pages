@@ -146,17 +146,21 @@ function App() {
       </div>
 
       <header className="header">
-        <div className="header-left">
+        <h1 className="title">Morning Pages</h1>
+        <div className="header-right">
+          <div className="date-display">{displayDateStr}</div>
           <button
-            className="inline-toggle"
+            className="history-toggle"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            title="Toggle Menu"
+            title="History"
           >
-            {isSidebarOpen ? '×' : '≡'}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3v5h5" />
+              <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
+              <path d="M12 7v5l4 2" />
+            </svg>
           </button>
-          <h1 className="title">Morning Pages</h1>
         </div>
-        <div className="date-display">{displayDateStr}</div>
       </header>
 
       <main>
@@ -164,8 +168,8 @@ function App() {
 
         {isDone && (
           <div className="done-message fade-in">
-            <h2>✨ Done for the day. Come back tomorrow.</h2>
-            <p className="streak-display">🔥 Streak: {streak} days</p>
+            <h2>Done for the day. Come back tomorrow.</h2>
+            <p className="streak-display">Streak: {streak} days</p>
           </div>
         )}
 
@@ -202,41 +206,41 @@ function App() {
         }
         .done-message {
             text-align: left;
-            color: var(--color-success);
+            color: var(--color-dim);
             margin-top: 2em;
             margin-bottom: 2em;
             font-family: var(--font-ui);
-            /* Removed box styling as requested */
         }
         .done-message h2 {
             font-size: 1.1rem;
             margin-bottom: 0.5rem;
             font-weight: normal;
+            color: var(--color-dim);
         }
         .streak-display {
-            color: #ff9800; /* Vivid Orange */
-            font-size: 1.1rem; /* Consistent with other text */
+            color: var(--color-dim); 
+            font-size: 1.1rem;
             margin: 0;
         }
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: center; /* Better vertical alignment */
+            align-items: center;
             width: 100%;
             margin-bottom: 2rem;
             font-family: var(--font-body); 
         }
-        .header-left {
+        .header-right {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-        .inline-toggle {
+        .history-toggle {
             background: transparent;
             border: none;
             color: var(--color-icon);
-            font-size: 1.5rem;
-            line-height: 1;
+            width: 24px;
+            height: 24px;
             cursor: pointer;
             padding: 0;
             display: flex;
@@ -244,7 +248,7 @@ function App() {
             justify-content: center;
             transition: color 0.3s;
         }
-        .inline-toggle:hover {
+        .history-toggle:hover {
             color: var(--color-text);
         }
         .title {
