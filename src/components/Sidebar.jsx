@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../services/storage';
 
-const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) => {
     const [entries, setEntries] = useState([]);
 
     useEffect(() => {
@@ -32,14 +31,6 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
 
     return (
         <>
-            <button
-                className={`sidebar-toggle ${isOpen ? 'open' : ''}`}
-                onClick={() => setIsOpen(!isOpen)}
-                title="History"
-            >
-                {isOpen ? '×' : '≡'}
-            </button>
-
             <div className={`sidebar ${isOpen ? 'open' : ''}`}>
                 <div className="entry-list">
                     {entries.length === 0 && <p className="empty">No past pages.</p>}
@@ -49,7 +40,7 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
                             className={`entry-item ${e.dateStr === currentDate ? 'active' : ''}`}
                             onClick={() => {
                                 onSelectDate(e.dateStr);
-                                // Optional: close sidebar on mobile? setIsOpen(false);
+                                if (onClose) onClose();
                             }}
                         >
                             {e.display}
@@ -63,21 +54,6 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout }) => {
             </div>
 
             <style>{`
-        .sidebar-toggle {
-            position: fixed;
-            top: 29px; /* Adjusted down from 25px (too high) and up from 32px (too low) */
-            left: 20px;
-            z-index: 300;
-            background: transparent;
-            border: none;
-            font-size: 1.5rem;
-            line-height: 1; /* Ensure no extra height */
-            cursor: pointer;
-            color: var(--color-icon);
-            transition: color 0.3s;
-        }
-        .sidebar-toggle:hover { color: var(--color-text); }
-        
         .sidebar {
             position: fixed;
             top: 0;

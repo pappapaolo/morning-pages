@@ -103,6 +103,9 @@ function App() {
     setWordCount(calculateWordCount(newText));
   };
 
+  // Sidebar State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   // Derive display string from the locked currentDateKey
   // We have YYYY-MM-DD, need to create a date object safely
   // Adding 'T12:00:00' to avoid timezone shifts when parsing YYYY-MM-DD
@@ -126,6 +129,8 @@ function App() {
 
       <Sidebar
         currentDate={currentDateKey}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
         onSelectDate={async (dateStr) => {
           // Update the current context to the selected date
           // This allows viewing/editing past entries essentially by "traveling" to that date
@@ -141,7 +146,16 @@ function App() {
       </div>
 
       <header className="header">
-        <h1 className="title">Morning Pages</h1>
+        <div className="header-left">
+          <button
+            className="inline-toggle"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            title="Toggle Menu"
+          >
+            {isSidebarOpen ? '×' : '≡'}
+          </button>
+          <h1 className="title">Morning Pages</h1>
+        </div>
         <div className="date-display">{displayDateStr}</div>
       </header>
 
@@ -201,16 +215,37 @@ function App() {
         }
         .streak-display {
             color: #ff9800; /* Vivid Orange */
-            font-size: 1.2rem; /* Larger than normal text */
+            font-size: 1.1rem; /* Consistent with other text */
             margin: 0;
         }
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
+            align-items: center; /* Better vertical alignment */
             width: 100%;
             margin-bottom: 2rem;
             font-family: var(--font-body); 
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .inline-toggle {
+            background: transparent;
+            border: none;
+            color: var(--color-icon);
+            font-size: 1.5rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s;
+        }
+        .inline-toggle:hover {
+            color: var(--color-text);
         }
         .title {
             font-family: var(--font-body); 
@@ -226,10 +261,18 @@ function App() {
             font-size: 1.15rem; 
             color: var(--color-dim);
             margin: 0;
+            opacity: 0.8;
         }
         .spacer {
             height: 50vh;
             width: 100%;
+        }
+        
+        /* Mobile adjustment for date display if needed */
+        @media (max-width: 600px) {
+            .date-display {
+                font-size: 0.9rem; /* Smaller date on mobile */
+            }
         }
       `}</style>
     </div>
