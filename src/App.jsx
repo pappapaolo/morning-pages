@@ -151,7 +151,7 @@ function App() {
         {isDone && (
           <div className="done-message fade-in">
             <h2>✨ Done for the day. Come back tomorrow.</h2>
-            <p>Streak: {streak} days</p>
+            <p className="streak-display">🔥 Streak: {streak} days</p>
           </div>
         )}
 
@@ -198,6 +198,11 @@ function App() {
             font-size: 1.1rem;
             margin-bottom: 0.5rem;
             font-weight: normal;
+        }
+        .streak-display {
+            color: #ff9800; /* Vivid Orange */
+            font-size: 1.2rem; /* Larger than normal text */
+            margin: 0;
         }
         .header {
             display: flex;

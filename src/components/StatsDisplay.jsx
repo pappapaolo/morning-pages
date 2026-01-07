@@ -42,7 +42,7 @@ const StatsDisplay = ({ wordCount, sessionWords, streak, startTime }) => {
           justify-content: center;
           align-items: center;
           color: var(--color-dim);
-          font-family: var(--font-ui);
+          font-family: var(--font-sans);
           font-size: 0.75rem; /* Tiny */
           opacity: 0.4; /* Low opacity */
           transition: opacity 0.3s;
