@@ -6,6 +6,7 @@ import StatsDisplay from './components/StatsDisplay';
 import Sidebar from './components/Sidebar';
 import AboutModal from './components/AboutModal';
 import { storage } from './services/storage';
+import { Analytics } from "@vercel/analytics/react";
 
 function App() {
   // Initialize date once on mount to lock the session, preventing midnight shifts
@@ -279,6 +280,7 @@ function App() {
             }
         }
       `}</style>
+      <Analytics />
     </div>
   );
 }

@@ -36,9 +36,12 @@ const StatsDisplay = ({ wordCount, sessionWords, streak, startTime }) => {
 
       <style>{`
         .stats-container {
+          position: fixed;
+          bottom: 1.5rem;
+          left: 50%;
+          transform: translateX(-50%);
           display: flex;
           gap: 1rem;
-          margin-top: 1rem;
           justify-content: center;
           align-items: center;
           color: var(--color-dim);
@@ -46,6 +49,8 @@ const StatsDisplay = ({ wordCount, sessionWords, streak, startTime }) => {
           font-size: 0.75rem; /* Tiny */
           opacity: 0.4; /* Low opacity */
           transition: opacity 0.3s;
+          z-index: 100;
+          pointer-events: auto;
         }
         .stats-container:hover {
             opacity: 1;
