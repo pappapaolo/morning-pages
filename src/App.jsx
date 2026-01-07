@@ -239,8 +239,8 @@ function App() {
             background: transparent;
             border: none;
             color: var(--color-icon);
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
             padding: 0;
             display: flex;

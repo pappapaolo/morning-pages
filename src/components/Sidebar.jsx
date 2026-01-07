@@ -57,19 +57,20 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
         .sidebar {
             position: fixed;
             top: 0;
-            left: 0;
+            right: 0; /* Align to right */
             height: 100vh;
             width: 250px;
-            background: var(--color-bg-sidebar);
-            box-shadow: var(--shadow-sidebar);
+            background: var(--color-bg); /* Match main background */
+            box-shadow: -5px 0 30px rgba(0,0,0,0.05); /* Subtle shadow on left */
             z-index: 250;
-            transform: translateX(-100%);
+            transform: translateX(100%); /* Slide out to right */
             transition: transform 0.3s ease;
             padding: 80px 20px 20px 20px;
             font-family: var(--font-ui);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            border-left: 1px solid rgba(0,0,0,0.05); /* Subtle separator */
         }
         .sidebar.open {
             transform: translateX(0);
