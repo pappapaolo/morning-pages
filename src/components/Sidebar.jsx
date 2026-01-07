@@ -60,7 +60,7 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
             right: 0; /* Align to right */
             height: 100vh;
             width: 250px;
-            background: var(--color-bg); /* Match main background */
+            background: var(--color-bg-sidebar); /* Lighter than main bg */
             box-shadow: -5px 0 30px rgba(0,0,0,0.05); /* Subtle shadow on left */
             z-index: 250;
             transform: translateX(100%); /* Slide out to right */
