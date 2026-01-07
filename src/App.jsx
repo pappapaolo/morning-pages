@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { Analytics } from '@vercel/analytics/react';
 import Editor from './components/Editor';
 import ProgressBar from './components/ProgressBar';
 import StatsDisplay from './components/StatsDisplay';
@@ -123,6 +124,7 @@ function App() {
 
   return (
     <div className="app-container">
+      <Analytics />
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
 
       <ProgressBar current={wordCount} target={750} />
