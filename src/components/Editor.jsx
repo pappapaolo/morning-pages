@@ -29,9 +29,16 @@ const Editor = ({ value, onChange, programProgress }) => {
 
       {showPlaceholder && (
         <div className={`placeholder-overlay ${isFocused ? 'dimmed' : ''}`}>
-          <h2>Morning Pages</h2>
-          <p className="subtitle">Write three pages of stream-of-consciousness writing.</p>
-          <div className="progress-pill">
+          <p>
+            <strong>Morning Pages</strong> are three pages of longhand, stream of consciousness writing, done first thing in the morning.*
+          </p>
+          <p>
+            There is no wrong way to do Morning Pages. These daily pages are not meant to be art. They are not even meant to be "writing." They are about anything and everything that crosses your mind – and they are for your eyes only.
+          </p>
+          <p className="footnote">
+            *For this digital version, "three pages" equals 750 words.
+          </p>
+          <div className="progress-info">
             Week {programProgress?.week || 1} of 12 • Day {programProgress?.day || 1}
           </div>
         </div>
@@ -61,37 +68,40 @@ const Editor = ({ value, onChange, programProgress }) => {
             width: 100%;
             height: 100%;
             pointer-events: none; /* Let clicks pass through to editor */
-            padding-top: 2rem;
             color: var(--color-dim);
             transition: opacity 0.3s ease;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start; /* Left align */
+            text-align: left;
+            font-family: var(--font-body);
+            font-size: 1.15rem; /* Match editor font size */
+            line-height: 1.8;
         }
         .placeholder-overlay.dimmed {
-            opacity: 0.15;
+            opacity: 0.1;
         }
-        .placeholder-overlay h2 {
-            font-size: 1.8rem;
-            color: var(--color-dim);
-            margin-bottom: 0.5rem;
-            font-weight: normal;
+        .placeholder-overlay p {
+            margin: 0 0 1.5rem 0;
+            max-width: 680px;
         }
-        .placeholder-overlay .subtitle {
-            font-size: 1rem;
-            opacity: 0.8;
-            margin-bottom: 2rem;
+        .placeholder-overlay strong {
+            font-weight: bold;
+            color: var(--color-text); /* Slight emphasis on title */
+        }
+        .footnote {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-bottom: 2rem !important;
             font-style: italic;
         }
-        .progress-pill {
-            background: var(--color-bg-active);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
+        .progress-info {
+            font-family: var(--font-sans);
             font-size: 0.8rem;
-            font-family: var(--font-sans); /* Use sans for data */
             text-transform: uppercase;
             letter-spacing: 1px;
-            opacity: 0.8;
+            opacity: 0.6;
+            margin-top: 1rem;
         }
 
         .editor-content {
