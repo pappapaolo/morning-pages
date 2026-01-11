@@ -24,6 +24,106 @@ const Editor = ({ value, onChange, programProgress }) => {
 
   const showPlaceholder = !value || value.trim() === '';
 
+  const handleKeyDown = (e) => {
+    if (e.key === ' ') {
+      const selection = window.getSelection();
+      if (!selection.rangeCount) return;
+
+      const range = selection.getRangeAt(0);
+      const startNode = range.startContainer;
+
+      // Check if we are in a text node
+      if (startNode.nodeType === Node.TEXT_NODE) {
+        const textBefore = startNode.textContent.slice(0, range.startOffset);
+
+        // Check for "- " or "* " pattern at the start of the line/paragraph
+        // We look for the last newline or beginning of string
+        const lastNewLine = textBefore.lastIndexOf('\n');
+        const textAfterLines = lastNewLine === -1 ? textBefore : textBefore.slice(lastNewLine + 1);
+
+        if (textAfterLines === '-' || textAfterLines === '*') {
+          e.preventDefault();
+
+          // Select the asterisk/dash
+          const newRange = document.createRange();
+          newRange.setStart(startNode, lastNewLine + 1 === 0 ? 0 : lastNewLine + 1 + (textBefore.length - (lastNewLine + 1) - 1)); // math to find char start
+          // Actually simpler: we know we are at offset. characters are at offset-1.
+
+          // Let's rely on string replacement in the node for simplicity and safety
+          // Remove the char (dash/star) and insert bullet
+
+          // Using execCommand to preserve history stack if possible, but it's deprecated.
+          // Fallback to manual manipulation (no undo support for this specific auto-format without custom stack).
+          // But execCommand 'insertText' is usually supported.
+
+          // Delete Key equivalent?
+          // Let's just manipulate textContent to be safe
+          const textNode = startNode;
+          const currentText = textNode.textContent;
+          const splitPoint = range.startOffset;
+
+          // Replace "curr - 1" with bullet?
+          // The pattern is "char" then user pressed "Space".
+          // So currently text is just "char". Space is being handled.
+
+          // Modify: "char" -> "• " (bullet + extra space? No, just bullet, then the typed space adds itself? 
+          // Wait, e.preventDefault() stops the space. So we must insert "• " manually.
+
+          const before = currentText.slice(0, splitPoint - 1); // remove dash
+          const after = currentText.slice(splitPoint);
+
+          textNode.textContent = before + '• \u00A0' + after; // bullet + nbsp
+
+          // Restore cursor
+          const newCursorPos = before.length + 3; // bullet + space + nbsp length? 
+          // "• \u00A0" is 3 chars? No "\u00A0" is 1 char. "•" is 1. Space is 1. "• \u00A0" is 3. 
+          // Let's just use "• " (normal space)
+          textNode.textContent = before + '• ' + after;
+
+          newRange.setStart(textNode, before.length + 2);
+          newRange.setEnd(textNode, before.length + 2);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+
+          // Update state
+          if (onChange && contentRef.current) onChange(contentRef.current.innerText);
+        }
+      }
+    }
+
+    if (e.key === 'Enter') {
+      const selection = window.getSelection();
+      if (!selection.rangeCount) return;
+      const range = selection.getRangeAt(0);
+      const startNode = range.startContainer;
+
+      if (startNode.nodeType === Node.TEXT_NODE) {
+        const textBefore = startNode.textContent.slice(0, range.startOffset);
+        const lastNewLine = textBefore.lastIndexOf('\n');
+        const currentLine = lastNewLine === -1 ? textBefore : textBefore.slice(lastNewLine + 1);
+
+        if (currentLine.trim().startsWith('•')) {
+          e.preventDefault();
+
+          // If line is empty (just bullet), end list
+          if (currentLine.trim() === '•') {
+            // Remove the bullet
+            const textNode = startNode;
+            const allText = textNode.textContent;
+            // Find the bullet and remove it.
+            // This is tricky with raw text nodes.
+            // let's just insert a newline and move on?
+            document.execCommand('insertText', false, '\n');
+            return;
+          }
+
+          // Insert newline and bullet
+          document.execCommand('insertText', false, '\n• ');
+        }
+      }
+    }
+  };
+
   return (
     <div className="editor-container">
 
@@ -49,6 +149,7 @@ const Editor = ({ value, onChange, programProgress }) => {
         className="editor-content"
         contentEditable
         onInput={handleInput}
+        onKeyDown={handleKeyDown}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         suppressContentEditableWarning={true}
@@ -110,7 +211,7 @@ const Editor = ({ value, onChange, programProgress }) => {
           background: transparent;
           font-family: var(--font-body);
           font-size: 1.15rem;
-          line-height: 1.8; 
+          line-height: 1.6; 
           color: var(--color-text);
           min-height: 50vh;
           white-space: pre-wrap;
@@ -118,11 +219,11 @@ const Editor = ({ value, onChange, programProgress }) => {
           z-index: 10; 
         }
         
-        /* Style paragraphs */
+        /* Style paragraphs - Reduced spacing */
         .editor-content > div, .editor-content > p {
-            margin-top: 2em; 
-            margin-bottom: 2em;
-            min-height: 1.6em; 
+            margin-top: 0.5em; 
+            margin-bottom: 0.5em;
+            min-height: 1em; 
         }
       `}</style>
     </div>

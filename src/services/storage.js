@@ -23,36 +23,52 @@ export const storage = {
     },
 
     async getStreak() {
-        const stored = await get('streak_info');
-        // Default: current streak 0, max 0, last date null
-        return stored || { current: 0, max: 0, lastDate: null };
+        // Calculate streak dynamically by checking past days
+        // This fixes issues where the metadata gets out of sync
+        const today = new Date();
+        const todayStr = today.toLocaleDateString('en-CA');
+        
+        let streak = 0;
+        let checkDate = new Date(today);
+        let foundGap = false;
+        
+        // Helper to check if a date has a completed entry
+        const isDateCompleted = async (dateStr) => {
+            const content = await this.getEntry(dateStr);
+            if (!content) return false;
+            // Simple word count approximation (matches App.jsx logic approximately)
+            const wordCount = content.trim().split(/\s+/).filter(w => w.length > 0).length;
+            return wordCount >= 750;
+        };
+
+        // Check today first
+        if (await isDateCompleted(todayStr)) {
+            streak++;
+        }
+
+        // Check backwards regardless of today's status
+        // If today is NOT done, we still want to see the streak ending yesterday.
+        // If today IS done, we continue checking backwards from yesterday.
+        
+        checkDate.setDate(checkDate.getDate() - 1); // Start checking yesterday
+        
+        while (!foundGap) {
+            const dateStr = checkDate.toLocaleDateString('en-CA');
+            const completed = await isDateCompleted(dateStr);
+            
+            if (completed) {
+                streak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+                foundGap = true;
+            }
+        }
+        
+        return { current: streak, max: streak, lastDate: todayStr }; // minimal compat object
     },
 
     async updateStreak(todayDateStr) {
-        const streakInfo = await this.getStreak();
-
-        // If already updated for today, return current
-        if (streakInfo.lastDate === todayDateStr) {
-            return streakInfo;
-        }
-
-        // Check if yesterday was the last date
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toLocaleDateString('en-CA');
-
-        let newCurrent = 1;
-        if (streakInfo.lastDate === yesterdayStr) {
-            newCurrent = streakInfo.current + 1;
-        }
-
-        const newStreak = {
-            current: newCurrent,
-            max: Math.max(newCurrent, streakInfo.max),
-            lastDate: todayDateStr
-        };
-
-        await set('streak_info', newStreak);
-        return newStreak;
+        // Just force a recalculation/get since we moved to dynamic
+        return await this.getStreak();
     }
 };
