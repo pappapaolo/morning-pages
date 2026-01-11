@@ -124,23 +124,34 @@ const Editor = ({ value, onChange, programProgress }) => {
     }
   };
 
+  const isFirstDay = programProgress.week === 1 && programProgress.day === 1;
+
   return (
     <div className="editor-container">
 
       {showPlaceholder && (
-        <div className={`placeholder-overlay ${isFocused ? 'dimmed' : ''}`}>
-          <p>
-            <strong>Morning Pages</strong> are three pages of longhand, stream of consciousness writing, done first thing in the morning.*
-          </p>
-          <p>
-            There is no wrong way to do Morning Pages. These daily pages are not meant to be art. They are not even meant to be "writing." They are about anything and everything that crosses your mind – and they are for your eyes only.
-          </p>
-          <p className="footnote">
-            *For this digital version, "three pages" equals 750 words.
-          </p>
-          <div className="progress-info">
-            Week {programProgress?.week || 1} of 12 • Day {programProgress?.day || 1}
-          </div>
+        <div className={`placeholder-overlay ${isFocused ? 'dimmed' : ''} ${!isFirstDay ? 'minimal' : ''}`}>
+          {isFirstDay ? (
+            <>
+              <p>
+                <strong>Morning Pages</strong> are three pages of longhand, stream of consciousness writing, done first thing in the morning.*
+              </p>
+              <p>
+                There is no wrong way to do Morning Pages. These daily pages are not meant to be art. They are not even meant to be "writing." They are about anything and everything that crosses your mind – and they are for your eyes only.
+              </p>
+              <p className="footnote">
+                *For this digital version, "three pages" equals 750 words.
+              </p>
+              <div className="progress-info">
+                Week {programProgress?.week || 1} of 12 • Day {programProgress?.day || 1}
+              </div>
+            </>
+          ) : (
+            <div className="minimal-placeholder">
+              <div className="day-indicator">Day {programProgress?.day}</div>
+              <div className="week-indicator">Week {programProgress?.week}</div>
+            </div>
+          )}
         </div>
       )}
 
@@ -203,6 +214,40 @@ const Editor = ({ value, onChange, programProgress }) => {
             letter-spacing: 1px;
             opacity: 0.6;
             margin-top: 1rem;
+        }
+
+        /* Minimal Mode Styles */
+        .placeholder-overlay.minimal {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding-bottom: 10vh; /* Visual balance */
+        }
+        
+        .minimal-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .day-indicator {
+            font-size: 4rem;
+            font-weight: 300; 
+            font-family: var(--font-body);
+            color: var(--color-dim);
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+        
+        .week-indicator {
+            font-family: var(--font-sans);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            color: var(--color-dim);
+            opacity: 0.7;
         }
 
         .editor-content {
