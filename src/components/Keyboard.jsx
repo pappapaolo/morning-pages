@@ -1,49 +1,49 @@
 import React, { useState, useEffect } from 'react';
 
-// Realistic keyboard layout with proper key widths and stagger offsets
+// Realistic keyboard layout with proper key widths, stagger offsets, and key codes for layout detection
 const KEYBOARD_ROWS = [
   {
     keys: [
-      { key: '`', width: 1 }, { key: '1', width: 1 }, { key: '2', width: 1 },
-      { key: '3', width: 1 }, { key: '4', width: 1 }, { key: '5', width: 1 },
-      { key: '6', width: 1 }, { key: '7', width: 1 }, { key: '8', width: 1 },
-      { key: '9', width: 1 }, { key: '0', width: 1 }, { key: '-', width: 1 },
-      { key: '=', width: 1 }, { key: 'Backspace', width: 2, label: '\u232B' }
+      { key: '`', code: 'Backquote', width: 1 }, { key: '1', code: 'Digit1', width: 1 }, { key: '2', code: 'Digit2', width: 1 },
+      { key: '3', code: 'Digit3', width: 1 }, { key: '4', code: 'Digit4', width: 1 }, { key: '5', code: 'Digit5', width: 1 },
+      { key: '6', code: 'Digit6', width: 1 }, { key: '7', code: 'Digit7', width: 1 }, { key: '8', code: 'Digit8', width: 1 },
+      { key: '9', code: 'Digit9', width: 1 }, { key: '0', code: 'Digit0', width: 1 }, { key: '-', code: 'Minus', width: 1 },
+      { key: '=', code: 'Equal', width: 1 }, { key: 'Backspace', code: 'Backspace', width: 2, label: '\u232B' }
     ],
     offset: 0 // Number row - no offset
   },
   {
     keys: [
-      { key: 'Tab', width: 1.5, label: '\u21E5' },
-      { key: 'Q', width: 1 }, { key: 'W', width: 1 }, { key: 'E', width: 1 },
-      { key: 'R', width: 1 }, { key: 'T', width: 1 }, { key: 'Y', width: 1 },
-      { key: 'U', width: 1 }, { key: 'I', width: 1 }, { key: 'O', width: 1 },
-      { key: 'P', width: 1 }, { key: '[', width: 1 }, { key: ']', width: 1 },
-      { key: '\\', width: 1.5 }
+      { key: 'Tab', code: 'Tab', width: 1.5, label: '\u21E5' },
+      { key: 'Q', code: 'KeyQ', width: 1 }, { key: 'W', code: 'KeyW', width: 1 }, { key: 'E', code: 'KeyE', width: 1 },
+      { key: 'R', code: 'KeyR', width: 1 }, { key: 'T', code: 'KeyT', width: 1 }, { key: 'Y', code: 'KeyY', width: 1 },
+      { key: 'U', code: 'KeyU', width: 1 }, { key: 'I', code: 'KeyI', width: 1 }, { key: 'O', code: 'KeyO', width: 1 },
+      { key: 'P', code: 'KeyP', width: 1 }, { key: '[', code: 'BracketLeft', width: 1 }, { key: ']', code: 'BracketRight', width: 1 },
+      { key: '\\', code: 'Backslash', width: 1.5 }
     ],
-    offset: 0.5 // QWERTY row - 0.5 key offset
+    offset: 0 // QWERTY row - no offset (realistic stagger)
   },
   {
     keys: [
-      { key: 'CapsLock', width: 1.75, label: '\u21EA' },
-      { key: 'A', width: 1 }, { key: 'S', width: 1 }, { key: 'D', width: 1 },
-      { key: 'F', width: 1 }, { key: 'G', width: 1 }, { key: 'H', width: 1 },
-      { key: 'J', width: 1 }, { key: 'K', width: 1 }, { key: 'L', width: 1 },
-      { key: ';', width: 1 }, { key: "'", width: 1 },
-      { key: 'Enter', width: 2.25, label: '\u21B5' }
+      { key: 'CapsLock', code: 'CapsLock', width: 1.75, label: '\u21EA' },
+      { key: 'A', code: 'KeyA', width: 1 }, { key: 'S', code: 'KeyS', width: 1 }, { key: 'D', code: 'KeyD', width: 1 },
+      { key: 'F', code: 'KeyF', width: 1 }, { key: 'G', code: 'KeyG', width: 1 }, { key: 'H', code: 'KeyH', width: 1 },
+      { key: 'J', code: 'KeyJ', width: 1 }, { key: 'K', code: 'KeyK', width: 1 }, { key: 'L', code: 'KeyL', width: 1 },
+      { key: ';', code: 'Semicolon', width: 1 }, { key: "'", code: 'Quote', width: 1 },
+      { key: 'Enter', code: 'Enter', width: 2.25, label: '\u21B5' }
     ],
-    offset: 0.75 // ASDF row - 0.75 key offset
+    offset: 0.25 // ASDF row - slight offset (realistic stagger)
   },
   {
     keys: [
-      { key: 'Shift', width: 2.25, label: '\u21E7' },
-      { key: 'Z', width: 1 }, { key: 'X', width: 1 }, { key: 'C', width: 1 },
-      { key: 'V', width: 1 }, { key: 'B', width: 1 }, { key: 'N', width: 1 },
-      { key: 'M', width: 1 }, { key: ',', width: 1 }, { key: '.', width: 1 },
-      { key: '/', width: 1 },
-      { key: 'ShiftRight', width: 2.75, label: '\u21E7' }
+      { key: 'Shift', code: 'ShiftLeft', width: 2.25, label: '\u21E7' },
+      { key: 'Z', code: 'KeyZ', width: 1 }, { key: 'X', code: 'KeyX', width: 1 }, { key: 'C', code: 'KeyC', width: 1 },
+      { key: 'V', code: 'KeyV', width: 1 }, { key: 'B', code: 'KeyB', width: 1 }, { key: 'N', code: 'KeyN', width: 1 },
+      { key: 'M', code: 'KeyM', width: 1 }, { key: ',', code: 'Comma', width: 1 }, { key: '.', code: 'Period', width: 1 },
+      { key: '/', code: 'Slash', width: 1 },
+      { key: 'ShiftRight', code: 'ShiftRight', width: 2.75, label: '\u21E7' }
     ],
-    offset: 1.25 // ZXCV row - 1.25 key offset
+    offset: 0.5 // ZXCV row - moderate offset (realistic stagger)
   },
 ];
 
@@ -87,6 +87,40 @@ const SPACE_COLOR = '#74c0fc'; // Thumbs (light blue)
 
 const Keyboard = ({ isVisible, onToggle }) => {
   const [activeKeys, setActiveKeys] = useState(new Set());
+  const [keyLabels, setKeyLabels] = useState({});
+
+  // Detect keyboard layout on mount
+  useEffect(() => {
+    const detectLayout = async () => {
+      // Check if Keyboard API is available (Chrome/Edge only)
+      if (navigator.keyboard && navigator.keyboard.getLayoutMap) {
+        try {
+          const layoutMap = await navigator.keyboard.getLayoutMap();
+          const labels = {};
+
+          // Build mapping from code to detected label
+          KEYBOARD_ROWS.forEach(row => {
+            row.keys.forEach(keyObj => {
+              if (keyObj.code && layoutMap.has(keyObj.code)) {
+                const detectedLabel = layoutMap.get(keyObj.code);
+                // Only override for printable characters (not modifiers)
+                if (detectedLabel && detectedLabel.length === 1) {
+                  labels[keyObj.code] = detectedLabel.toUpperCase();
+                }
+              }
+            });
+          });
+
+          setKeyLabels(labels);
+        } catch (err) {
+          // Falls back to US layout (default)
+          console.log('Could not detect keyboard layout, using US layout');
+        }
+      }
+    };
+
+    detectLayout();
+  }, []);
 
   useEffect(() => {
     if (!isVisible) return;
@@ -114,6 +148,13 @@ const Keyboard = ({ isVisible, onToggle }) => {
     };
   }, [isVisible]);
 
+  // Get display label for a key (using detected layout or default)
+  const getKeyLabel = (keyObj) => {
+    if (keyObj.label) return keyObj.label; // Use explicit label for modifiers
+    if (keyObj.code && keyLabels[keyObj.code]) return keyLabels[keyObj.code];
+    return keyObj.key;
+  };
+
   const isKeyActive = (keyObj) => {
     const key = typeof keyObj === 'string' ? keyObj : keyObj.key;
     const upperKey = key.toUpperCase();
@@ -126,32 +167,49 @@ const Keyboard = ({ isVisible, onToggle }) => {
   const BASE_KEY_SIZE = 2;
   const KEY_GAP = 0.2;
 
+  // Calculate row width for proper alignment (excludes offset - offset is just visual stagger)
+  const getRowWidth = (row) => {
+    const keysWidth = row.keys.reduce((sum, k) => sum + k.width, 0) * BASE_KEY_SIZE;
+    const gapsWidth = (row.keys.length - 1) * KEY_GAP;
+    return keysWidth + gapsWidth;
+  };
+
+  // Find max row width for consistent container sizing
+  const maxRowWidth = Math.max(...KEYBOARD_ROWS.map(getRowWidth));
+
   // Always render the toggle button container
   return (
     <div className={`keyboard-wrapper ${isVisible ? 'expanded' : ''}`}>
       {isVisible && (
-        <div className="keyboard-container">
-          {KEYBOARD_ROWS.map((row, rowIndex) => (
-            <div
-              key={rowIndex}
-              className="keyboard-row"
-              style={{ marginLeft: `${row.offset * BASE_KEY_SIZE}rem` }}
-            >
-              {row.keys.map((keyObj) => (
-                <div
-                  key={keyObj.key}
-                  className={`keyboard-key ${isKeyActive(keyObj) ? 'active' : ''}`}
-                  style={{
-                    '--key-color': getKeyColor(keyObj.key),
-                    '--key-active-color': getKeyColor(keyObj.key),
-                    width: `${keyObj.width * BASE_KEY_SIZE + (keyObj.width - 1) * KEY_GAP}rem`,
-                  }}
-                >
-                  {keyObj.label || keyObj.key}
-                </div>
-              ))}
-            </div>
-          ))}
+        <div className="keyboard-container" style={{ '--keyboard-width': `${maxRowWidth}rem` }}>
+          {KEYBOARD_ROWS.map((row, rowIndex) => {
+            const rowWidth = getRowWidth(row);
+            const rightPadding = maxRowWidth - rowWidth;
+            return (
+              <div
+                key={rowIndex}
+                className="keyboard-row"
+                style={{
+                  paddingLeft: `${row.offset * BASE_KEY_SIZE}rem`,
+                  paddingRight: `${rightPadding}rem`
+                }}
+              >
+                {row.keys.map((keyObj) => (
+                  <div
+                    key={keyObj.key}
+                    className={`keyboard-key ${isKeyActive(keyObj) ? 'active' : ''}`}
+                    style={{
+                      '--key-color': getKeyColor(keyObj.key),
+                      '--key-active-color': getKeyColor(keyObj.key),
+                      width: `${keyObj.width * BASE_KEY_SIZE + (keyObj.width - 1) * KEY_GAP}rem`,
+                    }}
+                  >
+                    {getKeyLabel(keyObj)}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
           <div className="keyboard-row space-row">
             <div
               className={`keyboard-key space-key ${activeKeys.has(' ') ? 'active' : ''}`}
@@ -202,26 +260,29 @@ const Keyboard = ({ isVisible, onToggle }) => {
         }
 
         .keyboard-container {
-          width: 100%;
+          width: var(--keyboard-width);
+          max-width: 100%;
+          margin: 0 auto;
           background: var(--color-bg);
-          border-top: 1px solid var(--color-border);
+          border-top: 0.5px solid var(--color-border);
           padding: 0.75rem;
           padding-bottom: 0.5rem;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: stretch;
           gap: 0.2rem;
-          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+          box-shadow: none;
         }
 
         .keyboard-row {
           display: flex;
           gap: 0.2rem;
-          justify-content: center;
+          justify-content: flex-start;
         }
 
         .space-row {
           margin-top: 0.2rem;
+          justify-content: center;
         }
 
         .keyboard-key {

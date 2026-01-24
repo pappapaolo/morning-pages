@@ -7,7 +7,6 @@ import Sidebar from './components/Sidebar';
 import AboutModal from './components/AboutModal';
 import FlameIcon from './components/FlameIcon';
 import Keyboard from './components/Keyboard';
-import AuthButton from './components/AuthButton';
 import SyncStatus from './components/SyncStatus';
 import SearchModal from './components/SearchModal';
 import { storage } from './services/storage';
@@ -118,9 +117,13 @@ function App() {
   // Rescue Check (Run once on mount)
   useEffect(() => {
     const checkRescue = async () => {
-      // Logic: If today is "fresh" launch (not just a date switch), check yesterday
-      // For simplicity, we just check "yesterday" relative to the INITIAL load date
-      // We already have currentDateKey initialized to "today" on mount.
+      // Get current streak first - only show rescue if user actually has a streak to save
+      const streakInfo = await storage.getStreak();
+
+      // No streak means nothing to rescue - skip for new users
+      if (streakInfo.current === 0) {
+        return;
+      }
 
       // Calculate yesterday
       const today = new Date();
@@ -130,10 +133,9 @@ function App() {
 
       // Check if yesterday is incomplete
       const yesterdayText = await storage.getEntry(yesterdayStr);
-      const yesterdayCount = calculateWordCount(yesterdayText);
+      const yesterdayCount = calculateWordCount(yesterdayText || '');
 
-      // If incomplete (< 750 words) and not empty (started but failed) OR empty (missed entirely)
-      // Actually, user wants to save streak. So if < 750, offer rescue.
+      // Only show rescue if yesterday is incomplete AND user has a streak to save
       if (yesterdayCount < 750) {
         setShowRescueModal(true);
       }
@@ -261,8 +263,7 @@ function App() {
         dateStr: dateStr,
         display: new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
           month: 'short',
-          day: 'numeric',
-          year: 'numeric'
+          day: 'numeric'
         }),
         content: content || ''
       };
@@ -404,9 +405,8 @@ function App() {
         title="Menu"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="9" y1="3" x2="9" y2="21" />
         </svg>
       </button>
 
@@ -421,7 +421,6 @@ function App() {
           )}
           <div className="date-display">{displayDateStr}</div>
           {user && <SyncStatus status={syncStatus} lastSync={lastSync} />}
-          <AuthButton onSignIn={handleSync} />
         </div>
       </header>
 

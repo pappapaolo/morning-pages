@@ -73,7 +73,12 @@ html {
 }
 
 .app-container.sidebar-open {
-  margin-left: 280px;
+  margin-left: calc(280px + max(0px, (100vw - 280px - var(--max-width)) / 2));
+}
+
+/* Reduce visual weight of bold in Merriweather */
+strong, b {
+  opacity: 0.9;
 }
 
 .header {

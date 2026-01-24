@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { storage } from '../services/storage';
+import { useAuth } from '../contexts/AuthContext';
+import AuthButton from './AuthButton';
 
 const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOpenSearch, entries: propEntries }) => {
+    const { isConfigured: isFirebaseConfigured } = useAuth();
     const [entries, setEntries] = useState([]);
     const [importStatus, setImportStatus] = useState(null);
     const fileInputRef = useRef(null);
@@ -24,8 +27,7 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
                 dateStr: dateStr,
                 display: new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
                     month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
+                    day: 'numeric'
                 }),
                 content: content || ''
             };
@@ -68,6 +70,17 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
 
     return (
         <div className={`sidebar ${isOpen ? 'open' : ''}`}>
+            {/* Sidebar Header with Logo and Close Button */}
+            <div className="sidebar-header">
+                <span className="sidebar-logo">MP</span>
+                <button className="sidebar-close-btn" onClick={onClose}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+
             {/* Search Button */}
             <button className="search-button" onClick={onOpenSearch}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -96,9 +109,16 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             </div>
 
             <div className="sidebar-footer">
+                {isFirebaseConfigured && (
+                    <div className="sidebar-auth">
+                        <span className="auth-cta">Backup your progress</span>
+                        <AuthButton />
+                    </div>
+                )}
                 <div className="backup-buttons">
-                    <button className="backup-btn" onClick={handleExport}>Export Backup</button>
-                    <button className="backup-btn" onClick={handleImportClick}>Import Backup</button>
+                    <button className="backup-btn" onClick={handleExport}>Export</button>
+                    <span className="backup-separator">·</span>
+                    <button className="backup-btn" onClick={handleImportClick}>Import</button>
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -118,8 +138,8 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             left: 0;
             height: 100vh;
             width: 280px;
-            background: var(--color-bg-sidebar-dark);
-            box-shadow: 1px 0 0 var(--color-border);
+            background: #fafafa;
+            border-right: 0.5px solid rgba(0, 0, 0, 0.06);
             z-index: 150;
             transform: translateX(-100%);
             transition: transform 0.3s ease;
@@ -129,8 +149,42 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             display: flex;
             flex-direction: column;
         }
+        @media (prefers-color-scheme: dark) {
+            .sidebar {
+                background: #1a1a1a;
+                border-right: 0.5px solid rgba(255, 255, 255, 0.06);
+            }
+        }
         .sidebar.open {
             transform: translateX(0);
+        }
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+        }
+        .sidebar-logo {
+            font-family: var(--font-body);
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--color-text);
+            letter-spacing: -0.5px;
+        }
+        .sidebar-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--color-dim);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+        .sidebar-close-btn:hover {
+            color: var(--color-text);
         }
         .search-button {
             display: flex;
@@ -202,25 +256,43 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             font-size: 0.8rem;
             padding: 0;
         }
-        .backup-buttons {
+        .sidebar-auth {
             display: flex;
             flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .auth-cta {
+            font-size: 0.75rem;
+            color: var(--color-dim);
+        }
+        .backup-buttons {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
             gap: 0.5rem;
             margin-bottom: 1rem;
         }
+        .backup-separator {
+            color: var(--color-dim);
+            font-size: 0.75rem;
+        }
         .backup-btn {
-            background: var(--color-bg-hover);
-            border: 1px solid var(--color-border);
-            color: var(--color-text);
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
+            background: transparent;
+            border: none;
+            color: var(--color-dim);
+            padding: 0;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             font-family: var(--font-ui);
-            transition: background 0.2s;
+            text-decoration: underline;
+            transition: color 0.2s;
         }
         .backup-btn:hover {
-            background: var(--color-bg-active);
+            color: var(--color-text);
         }
         .import-status {
             font-size: 0.8rem;

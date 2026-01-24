@@ -4,9 +4,9 @@ const RescueModal = ({ onRescue, onSkip }) => {
     return (
         <div className="modal-overlay">
             <div className="modal-content">
-                <h2>Save Your Streak!</h2>
+                <h2>Keep Your Streak Going</h2>
                 <p>
-                    You missed yesterday's pages. Would you like to complete them now to keep your streak alive?
+                    Yesterday's pages aren't complete yet. Finish them now to maintain your streak, or start fresh from today.
                 </p>
                 <div className="modal-actions">
                     <button className="btn-secondary" onClick={onSkip}>

@@ -19,8 +19,17 @@ const Editor = ({ value, onChange, programProgress, totalDays = 1 }) => {
 
   const handleInput = (e) => {
     if (onChange) {
+      // Extract text content, preserving the semantic structure
       onChange(e.currentTarget.innerText);
     }
+  };
+
+  // Helper to create a bullet line span
+  const createBulletSpan = (text) => {
+    const span = document.createElement('span');
+    span.className = 'bullet-line';
+    span.textContent = text;
+    return span;
   };
 
   const showPlaceholder = !value || value.trim() === '';
@@ -45,44 +54,37 @@ const Editor = ({ value, onChange, programProgress, totalDays = 1 }) => {
         if (textAfterLines === '-' || textAfterLines === '*') {
           e.preventDefault();
 
-          // Select the asterisk/dash
-          const newRange = document.createRange();
-          newRange.setStart(startNode, lastNewLine + 1 === 0 ? 0 : lastNewLine + 1 + (textBefore.length - (lastNewLine + 1) - 1)); // math to find char start
-          // Actually simpler: we know we are at offset. characters are at offset-1.
-
-          // Let's rely on string replacement in the node for simplicity and safety
-          // Remove the char (dash/star) and insert bullet
-
-          // Using execCommand to preserve history stack if possible, but it's deprecated.
-          // Fallback to manual manipulation (no undo support for this specific auto-format without custom stack).
-          // But execCommand 'insertText' is usually supported.
-
-          // Delete Key equivalent?
-          // Let's just manipulate textContent to be safe
           const textNode = startNode;
           const currentText = textNode.textContent;
           const splitPoint = range.startOffset;
 
-          // Replace "curr - 1" with bullet?
-          // The pattern is "char" then user pressed "Space".
-          // So currently text is just "char". Space is being handled.
-
-          // Modify: "char" -> "• " (bullet + extra space? No, just bullet, then the typed space adds itself? 
-          // Wait, e.preventDefault() stops the space. So we must insert "• " manually.
-
+          // Get text before the dash (previous lines) and after cursor
           const before = currentText.slice(0, splitPoint - 1); // remove dash
           const after = currentText.slice(splitPoint);
 
-          textNode.textContent = before + '• \u00A0' + after; // bullet + nbsp
+          // Create the bullet span
+          const bulletSpan = createBulletSpan('•  ');
 
-          // Restore cursor
-          const newCursorPos = before.length + 3; // bullet + space + nbsp length? 
-          // "• \u00A0" is 3 chars? No "\u00A0" is 1 char. "•" is 1. Space is 1. "• \u00A0" is 3. 
-          // Let's just use "• " (normal space)
-          textNode.textContent = before + '• ' + after;
+          // If there's text before, keep it as a text node
+          if (before) {
+            textNode.textContent = before;
+            // Insert span after the text node
+            textNode.parentNode.insertBefore(bulletSpan, textNode.nextSibling);
+          } else {
+            // Replace the text node with the span
+            textNode.parentNode.replaceChild(bulletSpan, textNode);
+          }
 
-          newRange.setStart(textNode, before.length + 2);
-          newRange.setEnd(textNode, before.length + 2);
+          // If there's text after, append it to the span
+          if (after) {
+            const afterNode = document.createTextNode(after);
+            bulletSpan.parentNode.insertBefore(afterNode, bulletSpan.nextSibling);
+          }
+
+          // Position cursor inside the span after "•  "
+          const newRange = document.createRange();
+          newRange.setStart(bulletSpan.firstChild, 3); // After "•  "
+          newRange.setEnd(bulletSpan.firstChild, 3);
           selection.removeAllRanges();
           selection.addRange(newRange);
 
@@ -98,6 +100,52 @@ const Editor = ({ value, onChange, programProgress, totalDays = 1 }) => {
       const range = selection.getRangeAt(0);
       const startNode = range.startContainer;
 
+      // Check if we're inside a bullet-line span
+      const bulletSpan = startNode.nodeType === Node.TEXT_NODE
+        ? startNode.parentElement?.closest('.bullet-line')
+        : startNode.closest?.('.bullet-line');
+
+      if (bulletSpan) {
+        e.preventDefault();
+
+        const textContent = bulletSpan.textContent;
+        // Check if it's just bullet with spaces (empty bullet line)
+        if (textContent.replace(/[•\s]/g, '') === '') {
+          // End the list - remove the bullet span and insert a line break
+          const br = document.createElement('br');
+          bulletSpan.parentNode.replaceChild(br, bulletSpan);
+
+          // Position cursor after the br
+          const newRange = document.createRange();
+          newRange.setStartAfter(br);
+          newRange.setEndAfter(br);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+
+          if (onChange && contentRef.current) onChange(contentRef.current.innerText);
+          return;
+        }
+
+        // Create a new bullet span for the next line
+        const newBulletSpan = createBulletSpan('•  ');
+
+        // Insert line break and new span after current span
+        const br = document.createElement('br');
+        bulletSpan.parentNode.insertBefore(br, bulletSpan.nextSibling);
+        bulletSpan.parentNode.insertBefore(newBulletSpan, br.nextSibling);
+
+        // Position cursor in the new span
+        const newRange = document.createRange();
+        newRange.setStart(newBulletSpan.firstChild, 3);
+        newRange.setEnd(newBulletSpan.firstChild, 3);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+
+        if (onChange && contentRef.current) onChange(contentRef.current.innerText);
+        return;
+      }
+
+      // Fallback: check for bullet in plain text (legacy support)
       if (startNode.nodeType === Node.TEXT_NODE) {
         const textBefore = startNode.textContent.slice(0, range.startOffset);
         const lastNewLine = textBefore.lastIndexOf('\n');
@@ -108,18 +156,12 @@ const Editor = ({ value, onChange, programProgress, totalDays = 1 }) => {
 
           // If line is empty (just bullet), end list
           if (currentLine.trim() === '•') {
-            // Remove the bullet
-            const textNode = startNode;
-            const allText = textNode.textContent;
-            // Find the bullet and remove it.
-            // This is tricky with raw text nodes.
-            // let's just insert a newline and move on?
             document.execCommand('insertText', false, '\n');
             return;
           }
 
           // Insert newline and bullet
-          document.execCommand('insertText', false, '\n• ');
+          document.execCommand('insertText', false, '\n•  ');
         }
       }
     }
@@ -258,12 +300,19 @@ const Editor = ({ value, onChange, programProgress, totalDays = 1 }) => {
           background: transparent;
           font-family: var(--font-body);
           font-size: 1.15rem;
-          line-height: 1.6; 
+          line-height: 1.6;
           color: var(--color-text);
           min-height: 50vh;
           white-space: pre-wrap;
           position: relative;
-          z-index: 10; 
+          z-index: 10;
+        }
+
+        /* Bullet line with hanging indent for proper text wrapping */
+        .bullet-line {
+          display: block;
+          padding-left: 1.5em;
+          text-indent: -1.5em;
         }
         
         /* Style paragraphs - Reduced spacing */
