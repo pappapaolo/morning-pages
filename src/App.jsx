@@ -39,6 +39,7 @@ function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [showRescueModal, setShowRescueModal] = useState(false);
   const [programProgress, setProgramProgress] = useState({ week: 1, day: 1 });
+  const [totalDays, setTotalDays] = useState(1);
 
   const calculateWordCount = (str) => {
     return str.trim().split(/\s+/).filter(w => w.length > 0).length;
@@ -102,6 +103,7 @@ function App() {
       const currentDay = (diffDays % 7) + 1;
 
       setProgramProgress({ week: currentWeek, day: currentDay });
+      setTotalDays(diffDays + 1);
 
       setIsLoading(false);
     };
@@ -311,16 +313,14 @@ function App() {
       </div>
 
       <header className="header">
-        <div className="title-group">
-          <h1 className="title">Morning Pages</h1>
+        <h1 className="title">Morning Pages</h1>
+        <div className="header-right">
           {streak > 0 && (
             <div className="header-streak">
               <FlameIcon size="small" />
               <span className="header-streak-count">{streak}</span>
             </div>
           )}
-        </div>
-        <div className="header-right">
           <div className="date-display">{displayDateStr}</div>
           {user && <SyncStatus status={syncStatus} lastSync={lastSync} />}
           <AuthButton onSignIn={handleSync} />
@@ -360,7 +360,7 @@ function App() {
           value={text}
           onChange={handleTextChange}
           programProgress={programProgress}
-          streak={streak}
+          totalDays={totalDays}
         />
 
         {isDone && (
@@ -454,11 +454,6 @@ function App() {
         }
         .keyboard-toggle.active {
             color: var(--color-accent);
-        }
-        .title-group {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
         }
         .title {
             font-family: var(--font-body);

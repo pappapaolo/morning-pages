@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import FlameIcon from './FlameIcon';
 
-const Editor = ({ value, onChange, programProgress, streak = 0 }) => {
+const Editor = ({ value, onChange, programProgress, totalDays = 1 }) => {
   const contentRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -151,7 +151,7 @@ const Editor = ({ value, onChange, programProgress, streak = 0 }) => {
             <div className="minimal-placeholder">
               <div className="streak-flame-container">
                 <FlameIcon size="large" />
-                <div className="streak-number">Day {streak}</div>
+                <div className="streak-number">Day {totalDays}</div>
               </div>
             </div>
           )}
