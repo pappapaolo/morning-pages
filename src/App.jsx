@@ -254,12 +254,32 @@ function App() {
   // We have YYYY-MM-DD, need to create a date object safely
   // Adding 'T12:00:00' to avoid timezone shifts when parsing YYYY-MM-DD
   const dateObj = new Date(currentDateKey + 'T12:00:00');
-  const displayDateStr = dateObj.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+
+  // Natural language date display
+  const getDisplayDate = () => {
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('en-CA');
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toLocaleDateString('en-CA');
+
+    if (currentDateKey === todayStr) return 'Today';
+    if (currentDateKey === yesterdayStr) return 'Yesterday';
+    if (currentDateKey === tomorrowStr) return 'Tomorrow';
+
+    // For other dates, use "Jan 24" format
+    return dateObj.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const displayDateStr = getDisplayDate();
 
   if (isLoading && !text) return <div className="loading">Loading...</div>; // Show loading if no text yet
 
@@ -312,6 +332,19 @@ function App() {
         {showToast}
       </div>
 
+      {/* Hamburger menu - fixed top left */}
+      <button
+        className="hamburger-menu"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        title="Menu"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
       <header className="header">
         <h1 className="title">Morning Pages</h1>
         <div className="header-right">
@@ -324,34 +357,6 @@ function App() {
           <div className="date-display">{displayDateStr}</div>
           {user && <SyncStatus status={syncStatus} lastSync={lastSync} />}
           <AuthButton onSignIn={handleSync} />
-          <button
-            className={`keyboard-toggle ${showKeyboard ? 'active' : ''}`}
-            onClick={toggleKeyboard}
-            title="Toggle Keyboard"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
-              <path d="M6 8h.001" />
-              <path d="M10 8h.001" />
-              <path d="M14 8h.001" />
-              <path d="M18 8h.001" />
-              <path d="M8 12h.001" />
-              <path d="M12 12h.001" />
-              <path d="M16 12h.001" />
-              <path d="M7 16h10" />
-            </svg>
-          </button>
-          <button
-            className="history-toggle"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            title="History"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 3v5h5" />
-              <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
-              <path d="M12 7v5l4 2" />
-            </svg>
-          </button>
         </div>
       </header>
 
@@ -381,7 +386,7 @@ function App() {
         <div className={`spacer ${showKeyboard ? 'with-keyboard' : ''}`}></div>
       </main>
 
-      <Keyboard isVisible={showKeyboard} />
+      <Keyboard isVisible={showKeyboard} onToggle={toggleKeyboard} />
 
       <style>{`
         .toast {
@@ -434,13 +439,16 @@ function App() {
             align-items: center;
             gap: 1rem;
         }
-        .history-toggle,
-        .keyboard-toggle {
+        .hamburger-menu {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 100;
             background: transparent;
             border: none;
             color: var(--color-icon);
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             cursor: pointer;
             padding: 0;
             display: flex;
@@ -448,12 +456,8 @@ function App() {
             justify-content: center;
             transition: color 0.3s;
         }
-        .history-toggle:hover,
-        .keyboard-toggle:hover {
+        .hamburger-menu:hover {
             color: var(--color-text);
-        }
-        .keyboard-toggle.active {
-            color: var(--color-accent);
         }
         .title {
             font-family: var(--font-body);

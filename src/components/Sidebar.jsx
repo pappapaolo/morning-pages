@@ -186,17 +186,17 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
         .search-input {
             width: 100%;
             padding: 10px 35px 10px 12px;
-            border: 1px solid var(--color-border);
+            border: none;
             border-radius: 8px;
-            background: var(--color-bg);
+            background: var(--color-bg-hover);
             color: var(--color-text);
             font-family: var(--font-ui);
             font-size: 0.9rem;
             outline: none;
-            transition: border-color 0.2s;
+            transition: background 0.2s;
         }
         .search-input:focus {
-            border-color: var(--color-dim);
+            background: var(--color-bg-active);
         }
         .search-input::placeholder {
             color: var(--color-dim);
@@ -234,7 +234,9 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
             background: var(--color-bg-hover);
         }
         .entry-item.active {
-            background: var(--color-bg-active);
+            background: transparent;
+            border-left: 2px solid var(--color-dim);
+            padding-left: 10px;
             color: var(--color-text);
         }
         .empty {
