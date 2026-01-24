@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import FlameIcon from './FlameIcon';
 
-const Editor = ({ value, onChange, programProgress }) => {
+const Editor = ({ value, onChange, programProgress, streak = 0 }) => {
   const contentRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -148,8 +149,10 @@ const Editor = ({ value, onChange, programProgress }) => {
             </>
           ) : (
             <div className="minimal-placeholder">
-              <div className="day-indicator">Day {programProgress?.day}</div>
-              <div className="week-indicator">Week {programProgress?.week}</div>
+              <div className="streak-flame-container">
+                <FlameIcon size="large" />
+                <div className="streak-number">Day {streak}</div>
+              </div>
             </div>
           )}
         </div>
@@ -232,22 +235,21 @@ const Editor = ({ value, onChange, programProgress }) => {
             animation: fadeIn 0.8s ease-out;
         }
 
-        .day-indicator {
-            font-size: 4rem;
-            font-weight: 300; 
+        .streak-flame-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .streak-number {
+            font-size: 3rem;
+            font-weight: 300;
             font-family: var(--font-body);
             color: var(--color-dim);
             line-height: 1;
             letter-spacing: -1px;
-        }
-        
-        .week-indicator {
-            font-family: var(--font-sans);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 0.9rem;
-            color: var(--color-dim);
-            opacity: 0.7;
         }
 
         .editor-content {

@@ -1,15 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import Editor from './components/Editor';
 import ProgressBar from './components/ProgressBar';
 import StatsDisplay from './components/StatsDisplay';
 import Sidebar from './components/Sidebar';
 import AboutModal from './components/AboutModal';
+import FlameIcon from './components/FlameIcon';
+import Keyboard from './components/Keyboard';
+import AuthButton from './components/AuthButton';
+import SyncStatus from './components/SyncStatus';
 import { storage } from './services/storage';
+import { syncService } from './services/sync';
+import { useAuth } from './contexts/AuthContext';
 import { Analytics } from "@vercel/analytics/react";
 import RescueModal from './components/RescueModal';
 
 function App() {
+  // Auth state
+  const { user, isConfigured: isFirebaseConfigured } = useAuth();
+
+  // Sync state
+  const [syncStatus, setSyncStatus] = useState(null); // 'syncing', 'synced', 'error', 'offline'
+  const [lastSync, setLastSync] = useState(null);
+
   // Initialize date once on mount to lock the session, preventing midnight shifts
   const [currentDateKey, setCurrentDateKey] = useState(() => new Date().toLocaleDateString('en-CA'));
 
@@ -122,6 +135,45 @@ function App() {
     checkRescue();
   }, []); // Run once
 
+  // Sync on login
+  const handleSync = useCallback(async () => {
+    if (!user || !isFirebaseConfigured) return;
+
+    setSyncStatus('syncing');
+    try {
+      // Auto-backup before first sync
+      const hasBackedUp = localStorage.getItem('hasCloudBackup');
+      if (!hasBackedUp) {
+        const data = await storage.exportAllData();
+        storage.downloadBackup(data, `morning-pages-pre-sync-backup-${new Date().toISOString().split('T')[0]}.json`);
+        localStorage.setItem('hasCloudBackup', 'true');
+      }
+
+      await syncService.fullSync(user.uid);
+      setSyncStatus('synced');
+      setLastSync(Date.now());
+
+      // Reload current entry in case it was updated from cloud
+      const savedText = await storage.getEntry(currentDateKey);
+      setText(savedText || '');
+      setWordCount(calculateWordCount(savedText || ''));
+      const streakInfo = await storage.getStreak();
+      setStreak(streakInfo.current);
+    } catch (err) {
+      console.error('Sync failed:', err);
+      setSyncStatus('error');
+    }
+  }, [user, isFirebaseConfigured, currentDateKey]);
+
+  // Trigger sync when user logs in
+  useEffect(() => {
+    if (user) {
+      handleSync();
+    } else {
+      setSyncStatus(null);
+    }
+  }, [user, handleSync]);
+
   // Save & Logic
   useEffect(() => {
     if (isLoading) return;
@@ -157,12 +209,25 @@ function App() {
     checkMilestone(750, "3 Pages - Morning Pages Complete!");
 
 
-    const timeoutId = setTimeout(() => {
-      storage.saveEntry(currentDateKey, text);
+    const timeoutId = setTimeout(async () => {
+      await storage.saveEntry(currentDateKey, text);
+
+      // Sync to cloud if logged in
+      if (user && isFirebaseConfigured) {
+        try {
+          const entry = { content: text, lastUpdated: Date.now() };
+          await syncService.syncEntry(user.uid, currentDateKey, entry);
+          setSyncStatus('synced');
+          setLastSync(Date.now());
+        } catch (err) {
+          console.error('Cloud sync failed:', err);
+          setSyncStatus('error');
+        }
+      }
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [text, wordCount, isLoading, milestonesReached, currentDateKey, startTime]);
+  }, [text, wordCount, isLoading, milestonesReached, currentDateKey, startTime, user, isFirebaseConfigured]);
 
   const handleTextChange = (newText) => {
     setText(newText);
@@ -171,6 +236,17 @@ function App() {
 
   // Sidebar State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Keyboard State (persisted to localStorage)
+  const [showKeyboard, setShowKeyboard] = useState(() => {
+    return localStorage.getItem('showKeyboard') === 'true';
+  });
+
+  const toggleKeyboard = () => {
+    const newValue = !showKeyboard;
+    setShowKeyboard(newValue);
+    localStorage.setItem('showKeyboard', String(newValue));
+  };
 
   // Derive display string from the locked currentDateKey
   // We have YYYY-MM-DD, need to create a date object safely
@@ -235,9 +311,36 @@ function App() {
       </div>
 
       <header className="header">
-        <h1 className="title">Morning Pages</h1>
+        <div className="title-group">
+          <h1 className="title">Morning Pages</h1>
+          {streak > 0 && (
+            <div className="header-streak">
+              <FlameIcon size="small" />
+              <span className="header-streak-count">{streak}</span>
+            </div>
+          )}
+        </div>
         <div className="header-right">
           <div className="date-display">{displayDateStr}</div>
+          {user && <SyncStatus status={syncStatus} lastSync={lastSync} />}
+          <AuthButton onSignIn={handleSync} />
+          <button
+            className={`keyboard-toggle ${showKeyboard ? 'active' : ''}`}
+            onClick={toggleKeyboard}
+            title="Toggle Keyboard"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+              <path d="M6 8h.001" />
+              <path d="M10 8h.001" />
+              <path d="M14 8h.001" />
+              <path d="M18 8h.001" />
+              <path d="M8 12h.001" />
+              <path d="M12 12h.001" />
+              <path d="M16 12h.001" />
+              <path d="M7 16h10" />
+            </svg>
+          </button>
           <button
             className="history-toggle"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -257,6 +360,7 @@ function App() {
           value={text}
           onChange={handleTextChange}
           programProgress={programProgress}
+          streak={streak}
         />
 
         {isDone && (
@@ -274,8 +378,10 @@ function App() {
         />
 
         {/* Spacer to allow scrolling past the editor content */}
-        <div className="spacer"></div>
+        <div className={`spacer ${showKeyboard ? 'with-keyboard' : ''}`}></div>
       </main>
+
+      <Keyboard isVisible={showKeyboard} />
 
       <style>{`
         .toast {
@@ -328,7 +434,8 @@ function App() {
             align-items: center;
             gap: 1rem;
         }
-        .history-toggle {
+        .history-toggle,
+        .keyboard-toggle {
             background: transparent;
             border: none;
             color: var(--color-icon);
@@ -341,17 +448,37 @@ function App() {
             justify-content: center;
             transition: color 0.3s;
         }
-        .history-toggle:hover {
+        .history-toggle:hover,
+        .keyboard-toggle:hover {
             color: var(--color-text);
         }
+        .keyboard-toggle.active {
+            color: var(--color-accent);
+        }
+        .title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
         .title {
-            font-family: var(--font-body); 
+            font-family: var(--font-body);
             text-transform: none;
             font-size: 1.15rem;
             color: var(--color-text);
             margin: 0;
             font-weight: normal;
             letter-spacing: normal;
+        }
+        .header-streak {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .header-streak-count {
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+            color: var(--color-dim);
+            font-weight: 500;
         }
         .date-display {
             font-family: var(--font-body); 
@@ -363,6 +490,9 @@ function App() {
         .spacer {
             height: 50vh;
             width: 100%;
+        }
+        .spacer.with-keyboard {
+            height: calc(50vh + 180px);
         }
         
         /* Mobile adjustment for date display if needed */

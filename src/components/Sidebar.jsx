@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { storage } from '../services/storage';
 
 const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) => {
     const [entries, setEntries] = useState([]);
+    const [importStatus, setImportStatus] = useState(null);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -29,6 +31,40 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
         setEntries(processed);
     };
 
+    const handleExport = async () => {
+        try {
+            const data = await storage.exportAllData();
+            const timestamp = new Date().toISOString().split('T')[0];
+            storage.downloadBackup(data, `morning-pages-backup-${timestamp}.json`);
+        } catch (err) {
+            console.error('Export failed:', err);
+        }
+    };
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleImportFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            const count = await storage.importData(data);
+            setImportStatus(`Imported ${count} entries`);
+            loadEntries(); // Refresh the entry list
+            setTimeout(() => setImportStatus(null), 3000);
+        } catch (err) {
+            setImportStatus('Import failed: invalid file');
+            setTimeout(() => setImportStatus(null), 3000);
+        }
+
+        // Reset file input
+        e.target.value = '';
+    };
+
     return (
         <>
             <div className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -49,6 +85,18 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
                 </div>
 
                 <div className="sidebar-footer">
+                    <div className="backup-buttons">
+                        <button className="backup-btn" onClick={handleExport}>Export Backup</button>
+                        <button className="backup-btn" onClick={handleImportClick}>Import Backup</button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImportFile}
+                            accept=".json"
+                            style={{ display: 'none' }}
+                        />
+                    </div>
+                    {importStatus && <div className="import-status">{importStatus}</div>}
                     <button className="about-link" onClick={onOpenAbout}>About & SEO</button>
                 </div>
             </div>
@@ -112,6 +160,31 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
             cursor: pointer;
             font-size: 0.8rem;
             padding: 0;
+        }
+        .backup-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .backup-btn {
+            background: var(--color-bg-hover);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: var(--font-ui);
+            transition: background 0.2s;
+        }
+        .backup-btn:hover {
+            background: var(--color-bg-active);
+        }
+        .import-status {
+            font-size: 0.8rem;
+            color: var(--color-success);
+            margin-bottom: 0.5rem;
         }
       `}</style>
         </>

@@ -1,8 +1,13 @@
-import { get, set, keys } from 'idb-keyval';
+import { get, set, keys, del } from 'idb-keyval';
 
 const STORE_KEY_PREFIX = 'morning_page_';
 
 const getDateKey = (dateStr) => `${STORE_KEY_PREFIX}${dateStr}`;
+
+// Helper to get raw entry with metadata
+const getRawEntry = async (key) => {
+    return await get(key);
+};
 
 export const storage = {
     async saveEntry(dateStr, content) {
@@ -70,5 +75,54 @@ export const storage = {
     async updateStreak(todayDateStr) {
         // Just force a recalculation/get since we moved to dynamic
         return await this.getStreak();
+    },
+
+    async exportAllData() {
+        const allKeys = await keys();
+        const dateKeys = allKeys.filter(k => k.startsWith(STORE_KEY_PREFIX));
+
+        const entries = {};
+        for (const key of dateKeys) {
+            const data = await get(key);
+            const dateStr = key.replace(STORE_KEY_PREFIX, '');
+            entries[dateStr] = data;
+        }
+
+        return {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            entries
+        };
+    },
+
+    async importData(jsonData) {
+        if (!jsonData || !jsonData.entries) {
+            throw new Error('Invalid backup format');
+        }
+
+        const { entries } = jsonData;
+        let imported = 0;
+
+        for (const [dateStr, data] of Object.entries(entries)) {
+            const key = getDateKey(dateStr);
+            await set(key, data);
+            imported++;
+        }
+
+        return imported;
+    },
+
+    downloadBackup(data, filename = 'morning-pages-backup.json') {
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 };
