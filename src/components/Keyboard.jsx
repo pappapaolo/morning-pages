@@ -1,16 +1,60 @@
 import React, { useState, useEffect } from 'react';
 
-// Staggered keyboard layout with column-based touch typing colors
+// Realistic keyboard layout with proper key widths and stagger offsets
 const KEYBOARD_ROWS = [
-  { keys: ['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='], offset: 0 },
-  { keys: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\'], offset: 0.5 },
-  { keys: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'"], offset: 0.75 },
-  { keys: ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/'], offset: 1.25 },
+  {
+    keys: [
+      { key: '`', width: 1 }, { key: '1', width: 1 }, { key: '2', width: 1 },
+      { key: '3', width: 1 }, { key: '4', width: 1 }, { key: '5', width: 1 },
+      { key: '6', width: 1 }, { key: '7', width: 1 }, { key: '8', width: 1 },
+      { key: '9', width: 1 }, { key: '0', width: 1 }, { key: '-', width: 1 },
+      { key: '=', width: 1 }, { key: 'Backspace', width: 2, label: '\u232B' }
+    ],
+    offset: 0 // Number row - no offset
+  },
+  {
+    keys: [
+      { key: 'Tab', width: 1.5, label: '\u21E5' },
+      { key: 'Q', width: 1 }, { key: 'W', width: 1 }, { key: 'E', width: 1 },
+      { key: 'R', width: 1 }, { key: 'T', width: 1 }, { key: 'Y', width: 1 },
+      { key: 'U', width: 1 }, { key: 'I', width: 1 }, { key: 'O', width: 1 },
+      { key: 'P', width: 1 }, { key: '[', width: 1 }, { key: ']', width: 1 },
+      { key: '\\', width: 1.5 }
+    ],
+    offset: 0.5 // QWERTY row - 0.5 key offset
+  },
+  {
+    keys: [
+      { key: 'CapsLock', width: 1.75, label: '\u21EA' },
+      { key: 'A', width: 1 }, { key: 'S', width: 1 }, { key: 'D', width: 1 },
+      { key: 'F', width: 1 }, { key: 'G', width: 1 }, { key: 'H', width: 1 },
+      { key: 'J', width: 1 }, { key: 'K', width: 1 }, { key: 'L', width: 1 },
+      { key: ';', width: 1 }, { key: "'", width: 1 },
+      { key: 'Enter', width: 2.25, label: '\u21B5' }
+    ],
+    offset: 0.75 // ASDF row - 0.75 key offset
+  },
+  {
+    keys: [
+      { key: 'Shift', width: 2.25, label: '\u21E7' },
+      { key: 'Z', width: 1 }, { key: 'X', width: 1 }, { key: 'C', width: 1 },
+      { key: 'V', width: 1 }, { key: 'B', width: 1 }, { key: 'N', width: 1 },
+      { key: 'M', width: 1 }, { key: ',', width: 1 }, { key: '.', width: 1 },
+      { key: '/', width: 1 },
+      { key: 'ShiftRight', width: 2.75, label: '\u21E7' }
+    ],
+    offset: 1.25 // ZXCV row - 1.25 key offset
+  },
 ];
 
-// Touch typing column colors (finger-based)
+// Touch typing column colors (finger-based, symmetric between hands)
 const getKeyColor = (key) => {
   const upperKey = key.toUpperCase();
+
+  // Modifier keys (neutral gray)
+  if (['TAB', 'CAPSLOCK', 'SHIFT', 'SHIFTRIGHT', 'ENTER', 'BACKSPACE'].includes(upperKey)) {
+    return '#adb5bd';
+  }
 
   // Left pinky (red): ` 1 Q A Z
   if (['`', '1', 'Q', 'A', 'Z'].includes(upperKey)) return '#ff6b6b';
@@ -21,20 +65,20 @@ const getKeyColor = (key) => {
   // Left middle (yellow): 3 E D C
   if (['3', 'E', 'D', 'C'].includes(upperKey)) return '#ffd43b';
 
-  // Left index (green): 4 R F V, 5 T G B
-  if (['4', 'R', 'F', 'V', '5', 'T', 'G', 'B'].includes(upperKey)) return '#69db7c';
+  // Left index (green): 4 5 R T F G V B
+  if (['4', '5', 'R', 'T', 'F', 'G', 'V', 'B'].includes(upperKey)) return '#69db7c';
 
-  // Right index (blue): 6 Y H N, 7 U J M
-  if (['6', 'Y', 'H', 'N', '7', 'U', 'J', 'M'].includes(upperKey)) return '#74c0fc';
+  // Right index (green): 6 7 Y U H J N M
+  if (['6', '7', 'Y', 'U', 'H', 'J', 'N', 'M'].includes(upperKey)) return '#69db7c';
 
-  // Right middle (purple): 8 I K ,
-  if (['8', 'I', 'K', ','].includes(upperKey)) return '#b197fc';
+  // Right middle (yellow): 8 I K ,
+  if (['8', 'I', 'K', ','].includes(upperKey)) return '#ffd43b';
 
-  // Right ring (pink): 9 O L .
-  if (['9', 'O', 'L', '.'].includes(upperKey)) return '#f783ac';
+  // Right ring (orange): 9 O L .
+  if (['9', 'O', 'L', '.'].includes(upperKey)) return '#ffa94d';
 
-  // Right pinky (gray): 0 P ; /, - [ ', = ] \
-  if (['0', 'P', ';', '/', '-', '[', "'", '=', ']', '\\'].includes(upperKey)) return '#adb5bd';
+  // Right pinky (red): 0 P ; / - = [ ] \ '
+  if (['0', 'P', ';', '/', '-', '=', '[', ']', '\\', "'"].includes(upperKey)) return '#ff6b6b';
 
   return '#adb5bd'; // Default gray
 };
@@ -70,10 +114,17 @@ const Keyboard = ({ isVisible, onToggle }) => {
     };
   }, [isVisible]);
 
-  const isKeyActive = (key) => {
+  const isKeyActive = (keyObj) => {
+    const key = typeof keyObj === 'string' ? keyObj : keyObj.key;
     const upperKey = key.toUpperCase();
+    // Handle special cases for modifier keys
+    if (upperKey === 'SHIFTRIGHT') return activeKeys.has('SHIFT');
     return activeKeys.has(upperKey) || activeKeys.has(key);
   };
+
+  // Base key size in rem (20% smaller: 2rem instead of 2.5rem)
+  const BASE_KEY_SIZE = 2;
+  const KEY_GAP = 0.2;
 
   // Always render the toggle button container
   return (
@@ -84,23 +135,24 @@ const Keyboard = ({ isVisible, onToggle }) => {
             <div
               key={rowIndex}
               className="keyboard-row"
-              style={{ marginLeft: `${row.offset * 2.75}rem` }}
+              style={{ marginLeft: `${row.offset * BASE_KEY_SIZE}rem` }}
             >
-              {row.keys.map((key) => (
+              {row.keys.map((keyObj) => (
                 <div
-                  key={key}
-                  className={`keyboard-key ${isKeyActive(key) ? 'active' : ''}`}
+                  key={keyObj.key}
+                  className={`keyboard-key ${isKeyActive(keyObj) ? 'active' : ''}`}
                   style={{
-                    '--key-color': getKeyColor(key),
-                    '--key-active-color': getKeyColor(key),
+                    '--key-color': getKeyColor(keyObj.key),
+                    '--key-active-color': getKeyColor(keyObj.key),
+                    width: `${keyObj.width * BASE_KEY_SIZE + (keyObj.width - 1) * KEY_GAP}rem`,
                   }}
                 >
-                  {key}
+                  {keyObj.label || keyObj.key}
                 </div>
               ))}
             </div>
           ))}
-          <div className="keyboard-row" style={{ marginLeft: `${1.25 * 2.75}rem` }}>
+          <div className="keyboard-row space-row">
             <div
               className={`keyboard-key space-key ${activeKeys.has(' ') ? 'active' : ''}`}
               style={{
@@ -153,30 +205,35 @@ const Keyboard = ({ isVisible, onToggle }) => {
           width: 100%;
           background: var(--color-bg);
           border-top: 1px solid var(--color-border);
-          padding: 1rem;
+          padding: 0.75rem;
           padding-bottom: 0.5rem;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.2rem;
           box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .keyboard-row {
           display: flex;
-          gap: 0.25rem;
+          gap: 0.2rem;
+          justify-content: center;
+        }
+
+        .space-row {
+          margin-top: 0.2rem;
         }
 
         .keyboard-key {
-          min-width: 2.5rem;
-          height: 2.5rem;
+          min-width: 2rem;
+          height: 2rem;
           display: flex;
           align-items: center;
           justify-content: center;
           background: var(--key-color);
           border-radius: 4px;
           font-family: var(--font-sans);
-          font-size: 0.85rem;
+          font-size: 0.7rem;
           font-weight: 500;
           color: #333;
           opacity: 0.6;
@@ -186,12 +243,12 @@ const Keyboard = ({ isVisible, onToggle }) => {
 
         .keyboard-key.active {
           opacity: 1;
-          transform: scale(1.1);
+          transform: scale(1.05);
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .space-key {
-          min-width: 15rem;
+          min-width: 12rem;
         }
 
         .keyboard-toggle-btn {
@@ -232,20 +289,20 @@ const Keyboard = ({ isVisible, onToggle }) => {
 
         @media (max-width: 768px) {
           .keyboard-key {
-            min-width: 1.8rem;
-            height: 2rem;
-            font-size: 0.7rem;
+            min-width: 1.5rem;
+            height: 1.5rem;
+            font-size: 0.55rem;
           }
           .space-key {
-            min-width: 10rem;
+            min-width: 8rem;
           }
           .keyboard-container {
             padding: 0.5rem;
             padding-bottom: 0.25rem;
-            gap: 0.25rem;
+            gap: 0.15rem;
           }
           .keyboard-row {
-            margin-left: 0 !important;
+            gap: 0.15rem;
           }
         }
       `}</style>

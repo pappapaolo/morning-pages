@@ -9,6 +9,7 @@ import FlameIcon from './components/FlameIcon';
 import Keyboard from './components/Keyboard';
 import AuthButton from './components/AuthButton';
 import SyncStatus from './components/SyncStatus';
+import SearchModal from './components/SearchModal';
 import { storage } from './services/storage';
 import { syncService } from './services/sync';
 import { useAuth } from './contexts/AuthContext';
@@ -54,6 +55,10 @@ function App() {
   useEffect(() => {
     const init = async () => {
       setIsLoading(true); // Ensure loading state while fetching
+
+      // Reset session tracking when date changes
+      setStartTime(null);
+      setStartWordCount(0);
 
       const savedText = await storage.getEntry(currentDateKey);
 
@@ -239,6 +244,57 @@ function App() {
   // Sidebar State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Search Modal State
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchEntries, setSearchEntries] = useState([]);
+
+  // Load entries for search
+  const loadSearchEntries = async () => {
+    const keys = await storage.getAllKeys();
+    const dateKeys = keys.filter(k => k.startsWith('morning_page_')).sort().reverse();
+
+    const processed = await Promise.all(dateKeys.map(async (k) => {
+      const dateStr = k.replace('morning_page_', '');
+      const content = await storage.getEntry(dateStr);
+      return {
+        key: k,
+        dateStr: dateStr,
+        display: new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        }),
+        content: content || ''
+      };
+    }));
+    setSearchEntries(processed);
+  };
+
+  // Cmd+K listener for search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        loadSearchEntries();
+        setShowSearch(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleOpenSearch = () => {
+    loadSearchEntries();
+    setShowSearch(true);
+  };
+
+  const handleSearchSelect = async (dateStr) => {
+    setIsLoading(true);
+    setText('');
+    setCurrentDateKey(dateStr);
+    setShowSearch(false);
+  };
+
   // Keyboard State (persisted to localStorage)
   const [showKeyboard, setShowKeyboard] = useState(() => {
     return localStorage.getItem('showKeyboard') === 'true';
@@ -298,7 +354,7 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
 
       {showRescueModal && (
@@ -325,7 +381,16 @@ function App() {
           setCurrentDateKey(dateStr);
         }}
         onOpenAbout={() => setShowAbout(true)}
+        onOpenSearch={handleOpenSearch}
       />
+
+      {showSearch && (
+        <SearchModal
+          entries={searchEntries}
+          onSelect={handleSearchSelect}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
 
       {/* Toast Notification */}
       <div className={`toast ${showToast ? 'show' : ''}`}>

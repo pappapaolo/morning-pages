@@ -1,20 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const StatsDisplay = ({ wordCount, sessionWords, streak, startTime }) => {
   const [wpm, setWpm] = useState(0);
   const [elapsed, setElapsed] = useState('0:00');
+  const typingHistoryRef = useRef([]);
+
+  // Track typing history for rolling WPM calculation
+  useEffect(() => {
+    const now = Date.now();
+    const windowMs = 15000; // 15 second window
+
+    // Filter old entries and add new snapshot
+    typingHistoryRef.current = [
+      ...typingHistoryRef.current.filter(h => now - h.timestamp < windowMs),
+      { timestamp: now, wordCount }
+    ];
+  }, [wordCount]);
+
+  // Calculate rolling WPM from recent history
+  const calculateRollingWpm = () => {
+    const history = typingHistoryRef.current;
+    if (history.length < 2) return 0;
+
+    const oldest = history[0];
+    const newest = history[history.length - 1];
+    const wordsTyped = newest.wordCount - oldest.wordCount;
+    const minutes = (newest.timestamp - oldest.timestamp) / 60000;
+
+    return minutes > 0 ? Math.round(wordsTyped / minutes) : 0;
+  };
 
   useEffect(() => {
     if (!startTime) return;
 
     const interval = setInterval(() => {
       const now = Date.now();
-      const diffMinutes = (now - startTime) / 60000;
 
-      if (diffMinutes > 0) {
-        // Use sessionWords (words typed since start) instead of total wordCount
-        setWpm(Math.round(sessionWords / diffMinutes));
-      }
+      // Use rolling window WPM calculation
+      setWpm(calculateRollingWpm());
 
       const totalSeconds = Math.floor((now - startTime) / 1000);
       const m = Math.floor(totalSeconds / 60);
@@ -24,7 +47,7 @@ const StatsDisplay = ({ wordCount, sessionWords, streak, startTime }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [startTime, wordCount, sessionWords]);
+  }, [startTime, wordCount]);
 
   return (
     <div className="stats-container">

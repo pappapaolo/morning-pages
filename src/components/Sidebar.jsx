@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { storage } from '../services/storage';
 
-const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) => {
+const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOpenSearch, entries: propEntries }) => {
     const [entries, setEntries] = useState([]);
-    const [searchQuery, setSearchQuery] = useState('');
     const [importStatus, setImportStatus] = useState(null);
     const fileInputRef = useRef(null);
-    const searchInputRef = useRef(null);
 
     useEffect(() => {
         if (isOpen) {
             loadEntries();
-            // Focus search input when sidebar opens
-            setTimeout(() => searchInputRef.current?.focus(), 100);
-        } else {
-            setSearchQuery(''); // Clear search when closed
         }
     }, [isOpen]);
 
@@ -72,101 +66,61 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
         e.target.value = '';
     };
 
-    // Filter entries based on search query
-    const filteredEntries = entries.filter(e => {
-        if (!searchQuery.trim()) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            e.display.toLowerCase().includes(query) ||
-            e.content.toLowerCase().includes(query)
-        );
-    });
-
     return (
-        <>
-            {/* Overlay */}
-            {isOpen && (
-                <div className="sidebar-overlay" onClick={onClose} />
-            )}
+        <div className={`sidebar ${isOpen ? 'open' : ''}`}>
+            {/* Search Button */}
+            <button className="search-button" onClick={onOpenSearch}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                </svg>
+                <span>Search pages</span>
+                <span className="search-shortcut">&#8984;K</span>
+            </button>
 
-            <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-                {/* Search Bar */}
-                <div className="search-container">
-                    <input
-                        ref={searchInputRef}
-                        type="text"
-                        className="search-input"
-                        placeholder="Search entries..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    {searchQuery && (
-                        <button
-                            className="search-clear"
-                            onClick={() => setSearchQuery('')}
-                        >
-                            &times;
-                        </button>
-                    )}
-                </div>
-
-                <div className="entry-list">
-                    {filteredEntries.length === 0 && (
-                        <p className="empty">
-                            {searchQuery ? 'No matching entries.' : 'No past pages.'}
-                        </p>
-                    )}
-                    {filteredEntries.map(e => (
-                        <div
-                            key={e.key}
-                            className={`entry-item ${e.dateStr === currentDate ? 'active' : ''}`}
-                            onClick={() => {
-                                onSelectDate(e.dateStr);
-                                if (onClose) onClose();
-                            }}
-                        >
-                            {e.display}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="sidebar-footer">
-                    <div className="backup-buttons">
-                        <button className="backup-btn" onClick={handleExport}>Export Backup</button>
-                        <button className="backup-btn" onClick={handleImportClick}>Import Backup</button>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleImportFile}
-                            accept=".json"
-                            style={{ display: 'none' }}
-                        />
+            <div className="entry-list">
+                {entries.length === 0 && (
+                    <p className="empty">No past pages.</p>
+                )}
+                {entries.map(e => (
+                    <div
+                        key={e.key}
+                        className={`entry-item ${e.dateStr === currentDate ? 'active' : ''}`}
+                        onClick={() => {
+                            onSelectDate(e.dateStr);
+                        }}
+                    >
+                        {e.display}
                     </div>
-                    {importStatus && <div className="import-status">{importStatus}</div>}
-                    <button className="about-link" onClick={onOpenAbout}>About & SEO</button>
+                ))}
+            </div>
+
+            <div className="sidebar-footer">
+                <div className="backup-buttons">
+                    <button className="backup-btn" onClick={handleExport}>Export Backup</button>
+                    <button className="backup-btn" onClick={handleImportClick}>Import Backup</button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImportFile}
+                        accept=".json"
+                        style={{ display: 'none' }}
+                    />
                 </div>
+                {importStatus && <div className="import-status">{importStatus}</div>}
+                <button className="about-link" onClick={onOpenAbout}>About & SEO</button>
             </div>
 
             <style>{`
-        .sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.3);
-            z-index: 200;
-            animation: fadeIn 0.2s ease;
-        }
         .sidebar {
             position: fixed;
             top: 0;
             left: 0;
             height: 100vh;
             width: 280px;
-            background: var(--color-bg-sidebar);
-            box-shadow: 5px 0 30px rgba(0,0,0,0.1);
-            z-index: 250;
+            background: var(--color-bg-sidebar-dark);
+            box-shadow: 1px 0 0 var(--color-border);
+            z-index: 150;
             transform: translateX(-100%);
             transition: transform 0.3s ease;
             padding: 20px;
@@ -174,48 +128,37 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid rgba(0,0,0,0.05);
         }
         .sidebar.open {
             transform: translateX(0);
         }
-        .search-container {
-            position: relative;
-            margin-bottom: 1rem;
-        }
-        .search-input {
+        .search-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             width: 100%;
-            padding: 10px 35px 10px 12px;
+            padding: 10px 12px;
             border: none;
             border-radius: 8px;
             background: var(--color-bg-hover);
-            color: var(--color-text);
+            color: var(--color-dim);
             font-family: var(--font-ui);
             font-size: 0.9rem;
-            outline: none;
-            transition: background 0.2s;
-        }
-        .search-input:focus {
-            background: var(--color-bg-active);
-        }
-        .search-input::placeholder {
-            color: var(--color-dim);
-        }
-        .search-clear {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--color-dim);
-            font-size: 1.2rem;
             cursor: pointer;
-            padding: 4px 8px;
-            line-height: 1;
+            transition: background 0.2s, color 0.2s;
+            margin-bottom: 1rem;
         }
-        .search-clear:hover {
+        .search-button:hover {
+            background: var(--color-bg-active);
             color: var(--color-text);
+        }
+        .search-shortcut {
+            margin-left: auto;
+            font-size: 0.75rem;
+            opacity: 0.6;
+            background: var(--color-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
         .entry-list {
             flex: 1;
@@ -224,7 +167,7 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
         .entry-item {
             padding: 10px 12px;
             cursor: pointer;
-            border-radius: 6px;
+            border-radius: 12px;
             color: var(--color-text);
             margin-bottom: 4px;
             transition: background 0.2s;
@@ -234,10 +177,9 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
             background: var(--color-bg-hover);
         }
         .entry-item.active {
-            background: transparent;
-            border-left: 2px solid var(--color-dim);
-            padding-left: 10px;
+            background: var(--color-bg);
             color: var(--color-text);
+            font-weight: 500;
         }
         .empty {
             color: var(--color-dim);
@@ -285,12 +227,8 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose }) =>
             color: var(--color-success);
             margin-bottom: 0.5rem;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
       `}</style>
-        </>
+        </div>
     );
 };
 

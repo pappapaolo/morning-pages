@@ -38,25 +38,20 @@ const FlameIcon = ({ size = 'small', className = '' }) => {
           display: inline-block;
           vertical-align: middle;
           animation: flameFlicker 3s ease-in-out infinite;
-          filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.4));
         }
 
         @keyframes flameFlicker {
           0%, 100% {
             transform: scale(1) rotate(0deg);
-            filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.4));
           }
           25% {
             transform: scale(1.02) rotate(-1deg);
-            filter: drop-shadow(0 0 6px rgba(255, 107, 53, 0.5));
           }
           50% {
             transform: scale(0.98) rotate(0.5deg);
-            filter: drop-shadow(0 0 3px rgba(255, 107, 53, 0.3));
           }
           75% {
             transform: scale(1.01) rotate(-0.5deg);
-            filter: drop-shadow(0 0 5px rgba(255, 107, 53, 0.45));
           }
         }
       `}</style>
