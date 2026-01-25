@@ -7,7 +7,7 @@ import Sidebar from './components/Sidebar';
 import AboutModal from './components/AboutModal';
 import FlameIcon from './components/FlameIcon';
 import Keyboard from './components/Keyboard';
-import SyncStatus from './components/SyncStatus';
+import AuthButton from './components/AuthButton';
 import SearchModal from './components/SearchModal';
 import { storage } from './services/storage';
 import { syncService } from './services/sync';
@@ -21,6 +21,9 @@ function App() {
   // Sync state
   const [syncStatus, setSyncStatus] = useState(null); // 'syncing', 'synced', 'error', 'offline'
   const [lastSync, setLastSync] = useState(null);
+
+  // Track last local update to prevent echo from real-time listener
+  const lastLocalUpdateRef = useRef(null);
 
   // Initialize date once on mount to lock the session, preventing midnight shifts
   const [currentDateKey, setCurrentDateKey] = useState(() => new Date().toLocaleDateString('en-CA'));
@@ -145,7 +148,41 @@ function App() {
     checkYesterday();
   }, []); // Run once
 
-  // Sync on login
+  // Handle real-time updates from other devices
+  const handleRemoteUpdate = useCallback(async (dateStr, cloudEntry) => {
+    // Skip if this is an echo of our own update (within 2 seconds)
+    if (lastLocalUpdateRef.current &&
+        lastLocalUpdateRef.current.dateStr === dateStr &&
+        Date.now() - lastLocalUpdateRef.current.timestamp < 2000) {
+      return;
+    }
+
+    // Get current local entry for this date
+    const localContent = await storage.getEntry(dateStr);
+    const cloudContent = cloudEntry.content || '';
+
+    // Only update if cloud is actually different and newer
+    if (cloudContent !== localContent) {
+      // Save to local storage
+      await storage.saveEntry(dateStr, cloudContent);
+
+      // If this is the current date being edited, update the UI
+      if (dateStr === currentDateKey) {
+        // Check if cloud is newer than what we have
+        const localData = await storage.exportAllData();
+        const localEntry = localData.entries[dateStr];
+        const localTime = localEntry?.lastUpdated || 0;
+        const cloudTime = cloudEntry.lastUpdated || 0;
+
+        if (cloudTime > localTime) {
+          setText(cloudContent);
+          setWordCount(calculateWordCount(cloudContent));
+        }
+      }
+    }
+  }, [currentDateKey]);
+
+  // Sync on login and subscribe to real-time updates
   const handleSync = useCallback(async () => {
     if (!user || !isFirebaseConfigured) return;
 
@@ -167,14 +204,54 @@ function App() {
     }
   }, [user, isFirebaseConfigured, currentDateKey]);
 
-  // Trigger sync when user logs in
+  // Trigger sync when user logs in and set up real-time listener
   useEffect(() => {
-    if (user) {
+    if (user && isFirebaseConfigured) {
       handleSync();
+
+      // Subscribe to real-time updates
+      const unsubscribe = syncService.subscribeToUpdates(user.uid, handleRemoteUpdate);
+
+      return () => {
+        unsubscribe();
+      };
     } else {
       setSyncStatus(null);
+      syncService.unsubscribe();
     }
-  }, [user, handleSync]);
+  }, [user, isFirebaseConfigured, handleSync, handleRemoteUpdate]);
+
+  // Track online/offline status
+  useEffect(() => {
+    const unsubscribe = syncService.onOnlineChange((online) => {
+      if (online) {
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('offline');
+      }
+    });
+
+    // Set initial status
+    if (!syncService.isOnline()) {
+      setSyncStatus('offline');
+    }
+
+    return unsubscribe;
+  }, []);
+
+  // Handler for import completion - reload current entry
+  const handleImportComplete = useCallback(async () => {
+    const savedText = await storage.getEntry(currentDateKey);
+    setText(savedText || '');
+    setWordCount(calculateWordCount(savedText || ''));
+    const streakInfo = await storage.getStreak();
+    setStreak(streakInfo.current);
+
+    // Trigger sync to push imported data to cloud
+    if (user && isFirebaseConfigured) {
+      handleSync();
+    }
+  }, [currentDateKey, user, isFirebaseConfigured, handleSync]);
 
   // Save & Logic
   useEffect(() => {
@@ -218,12 +295,19 @@ function App() {
       if (user && isFirebaseConfigured) {
         try {
           const entry = { content: text, lastUpdated: Date.now() };
+          // Track this update to prevent echo from real-time listener
+          lastLocalUpdateRef.current = { dateStr: currentDateKey, timestamp: Date.now() };
           await syncService.syncEntry(user.uid, currentDateKey, entry);
           setSyncStatus('synced');
           setLastSync(Date.now());
         } catch (err) {
           console.error('Cloud sync failed:', err);
-          setSyncStatus('error');
+          // Check if offline
+          if (!syncService.isOnline()) {
+            setSyncStatus('offline');
+          } else {
+            setSyncStatus('error');
+          }
         }
       }
     }, 1000);
@@ -398,7 +482,11 @@ function App() {
             </div>
           )}
           <div className="date-display">{displayDateStr}</div>
-          {user && <SyncStatus status={syncStatus} lastSync={lastSync} />}
+          <AuthButton
+            syncStatus={syncStatus}
+            lastSync={lastSync}
+            onImportComplete={handleImportComplete}
+          />
         </div>
       </header>
 
