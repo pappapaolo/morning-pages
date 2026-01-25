@@ -202,8 +202,8 @@ const AuthButton = ({ onSignIn, onSignOut, syncStatus, lastSync, onImportComplet
           }
           .profile-menu {
             position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
+            bottom: calc(100% + 8px);
+            left: 0;
             background: var(--color-bg);
             border: 1px solid var(--color-border);
             border-radius: 12px;

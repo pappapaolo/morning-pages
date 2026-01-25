@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SyncStatus = ({ status, lastSync }) => {
+const SyncStatus = ({ status, lastSync, errorMessage }) => {
   const getStatusIcon = () => {
     switch (status) {
       case 'syncing':
@@ -40,8 +40,18 @@ const SyncStatus = ({ status, lastSync }) => {
 
   if (!status) return null;
 
+  const getTitle = () => {
+    if (status === 'error' && errorMessage) {
+      return `Sync error: ${errorMessage}`;
+    }
+    if (lastSync) {
+      return `Last sync: ${new Date(lastSync).toLocaleTimeString()}`;
+    }
+    return '';
+  };
+
   return (
-    <div className="sync-status" title={lastSync ? `Last sync: ${new Date(lastSync).toLocaleTimeString()}` : ''}>
+    <div className="sync-status" title={getTitle()}>
       {getStatusIcon()}
       <style>{`
         .sync-status {

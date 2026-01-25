@@ -7,7 +7,6 @@ import Sidebar from './components/Sidebar';
 import AboutModal from './components/AboutModal';
 import FlameIcon from './components/FlameIcon';
 import Keyboard from './components/Keyboard';
-import AuthButton from './components/AuthButton';
 import SearchModal from './components/SearchModal';
 import { storage } from './services/storage';
 import { syncService } from './services/sync';
@@ -445,6 +444,9 @@ function App() {
         }}
         onOpenAbout={() => setShowAbout(true)}
         onOpenSearch={handleOpenSearch}
+        syncStatus={syncStatus}
+        lastSync={lastSync}
+        onImportComplete={handleImportComplete}
       />
 
       {showSearch && (
@@ -482,11 +484,6 @@ function App() {
             </div>
           )}
           <div className="date-display">{displayDateStr}</div>
-          <AuthButton
-            syncStatus={syncStatus}
-            lastSync={lastSync}
-            onImportComplete={handleImportComplete}
-          />
         </div>
       </header>
 

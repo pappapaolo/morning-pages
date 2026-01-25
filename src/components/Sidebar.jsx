@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { storage } from '../services/storage';
 import AuthButton from './AuthButton';
 
-const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOpenSearch, entries: propEntries }) => {
+const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOpenSearch, entries: propEntries, syncStatus, lastSync, onImportComplete }) => {
     const [entries, setEntries] = useState([]);
-    const [importStatus, setImportStatus] = useState(null);
-    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -31,39 +29,6 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             };
         }));
         setEntries(processed);
-    };
-
-    const handleExport = async () => {
-        try {
-            const data = await storage.exportAllData();
-            const timestamp = new Date().toISOString().split('T')[0];
-            storage.downloadBackup(data, `morning-pages-backup-${timestamp}.json`);
-        } catch (err) {
-            console.error('Export failed:', err);
-        }
-    };
-
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleImportFile = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-            const count = await storage.importData(data);
-            setImportStatus(`Imported ${count} entries`);
-            loadEntries();
-            setTimeout(() => setImportStatus(null), 3000);
-        } catch (err) {
-            setImportStatus('Import failed: invalid file');
-            setTimeout(() => setImportStatus(null), 3000);
-        }
-
-        e.target.value = '';
     };
 
     return (
@@ -108,21 +73,12 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
 
             <div className="sidebar-footer">
                 <div className="sidebar-auth">
-                    <AuthButton />
-                </div>
-                <div className="backup-buttons">
-                    <button className="backup-btn" onClick={handleExport}>Export</button>
-                    <span className="backup-separator">·</span>
-                    <button className="backup-btn" onClick={handleImportClick}>Import</button>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleImportFile}
-                        accept=".json"
-                        style={{ display: 'none' }}
+                    <AuthButton
+                        syncStatus={syncStatus}
+                        lastSync={lastSync}
+                        onImportComplete={onImportComplete}
                     />
                 </div>
-                {importStatus && <div className="import-status">{importStatus}</div>}
                 <button className="about-link" onClick={onOpenAbout}>About & SEO</button>
             </div>
 
@@ -253,38 +209,6 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
         }
         .sidebar-auth {
             margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--color-border);
-        }
-        .backup-buttons {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        .backup-separator {
-            color: var(--color-dim);
-            font-size: 0.75rem;
-        }
-        .backup-btn {
-            background: transparent;
-            border: none;
-            color: var(--color-dim);
-            padding: 0;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-family: var(--font-ui);
-            text-decoration: underline;
-            transition: color 0.2s;
-        }
-        .backup-btn:hover {
-            color: var(--color-text);
-        }
-        .import-status {
-            font-size: 0.8rem;
-            color: var(--color-success);
-            margin-bottom: 0.5rem;
         }
       `}</style>
         </div>

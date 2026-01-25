@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
   const signInWithGoogle = async () => {
     if (!isConfigured || !auth || !googleProvider) {
-      setError('Firebase is not configured');
+      setError('Firebase not configured. Check .env file and restart dev server.');
       return;
     }
 
@@ -64,13 +64,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const clearError = () => {
+    setError(null);
+  };
+
   const value = {
     user,
     loading,
     error,
     isConfigured,
     signInWithGoogle,
-    signOut
+    signOut,
+    clearError
   };
 
   return (
