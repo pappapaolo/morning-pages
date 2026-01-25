@@ -69,11 +69,10 @@ html {
   max-width: var(--max-width);
   padding: 2rem 1rem;
   margin: 0 auto;
-  transition: margin-left 0.3s ease, padding-left 0.3s ease;
 }
 
 .app-container.sidebar-open {
-  margin-left: calc(280px + max(0px, (100vw - 280px - var(--max-width)) / 2));
+  /* Sidebar overlays content - no shift needed */
 }
 
 /* Reduce visual weight of bold in Merriweather */

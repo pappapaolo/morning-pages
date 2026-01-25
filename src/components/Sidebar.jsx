@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { storage } from '../services/storage';
-import { useAuth } from '../contexts/AuthContext';
 import AuthButton from './AuthButton';
 
 const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOpenSearch, entries: propEntries }) => {
-    const { isConfigured: isFirebaseConfigured } = useAuth();
     const [entries, setEntries] = useState([]);
     const [importStatus, setImportStatus] = useState(null);
     const fileInputRef = useRef(null);
@@ -109,12 +107,9 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             </div>
 
             <div className="sidebar-footer">
-                {isFirebaseConfigured && (
-                    <div className="sidebar-auth">
-                        <span className="auth-cta">Backup your progress</span>
-                        <AuthButton />
-                    </div>
-                )}
+                <div className="sidebar-auth">
+                    <AuthButton />
+                </div>
                 <div className="backup-buttons">
                     <button className="backup-btn" onClick={handleExport}>Export</button>
                     <span className="backup-separator">·</span>
@@ -257,17 +252,9 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             padding: 0;
         }
         .sidebar-auth {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
             margin-bottom: 1rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid var(--color-border);
-        }
-        .auth-cta {
-            font-size: 0.75rem;
-            color: var(--color-dim);
         }
         .backup-buttons {
             display: flex;

@@ -13,7 +13,6 @@ import { storage } from './services/storage';
 import { syncService } from './services/sync';
 import { useAuth } from './contexts/AuthContext';
 import { Analytics } from "@vercel/analytics/react";
-import RescueModal from './components/RescueModal';
 
 function App() {
   // Auth state
@@ -37,7 +36,7 @@ function App() {
   const [milestonesReached, setMilestonesReached] = useState(new Set());
   const [showToast, setShowToast] = useState(null); // Message or null
   const [showAbout, setShowAbout] = useState(false);
-  const [showRescueModal, setShowRescueModal] = useState(false);
+  const [isViewingYesterday, setIsViewingYesterday] = useState(false);
   const [programProgress, setProgramProgress] = useState({ week: 1, day: 1 });
   const [totalDays, setTotalDays] = useState(1);
 
@@ -114,10 +113,10 @@ function App() {
     init();
   }, [currentDateKey]);
 
-  // Rescue Check (Run once on mount)
+  // Auto-redirect to yesterday if incomplete (Run once on mount)
   useEffect(() => {
-    const checkRescue = async () => {
-      // Get current streak first - only show rescue if user actually has a streak to save
+    const checkYesterday = async () => {
+      // Get current streak first - only redirect if user has a streak to save
       const streakInfo = await storage.getStreak();
 
       // No streak means nothing to rescue - skip for new users
@@ -135,13 +134,15 @@ function App() {
       const yesterdayText = await storage.getEntry(yesterdayStr);
       const yesterdayCount = calculateWordCount(yesterdayText || '');
 
-      // Only show rescue if yesterday is incomplete AND user has a streak to save
+      // Auto-redirect if yesterday is incomplete AND user has a streak to save
       if (yesterdayCount < 750) {
-        setShowRescueModal(true);
+        setIsViewingYesterday(true);
+        setCurrentDateKey(yesterdayStr);
+        triggerToast(`Finish yesterday's three pages to save your ${streakInfo.current} day streak`);
       }
     };
 
-    checkRescue();
+    checkYesterday();
   }, []); // Run once
 
   // Sync on login
@@ -150,14 +151,6 @@ function App() {
 
     setSyncStatus('syncing');
     try {
-      // Auto-backup before first sync
-      const hasBackedUp = localStorage.getItem('hasCloudBackup');
-      if (!hasBackedUp) {
-        const data = await storage.exportAllData();
-        storage.downloadBackup(data, `morning-pages-pre-sync-backup-${new Date().toISOString().split('T')[0]}.json`);
-        localStorage.setItem('hasCloudBackup', 'true');
-      }
-
       await syncService.fullSync(user.uid);
       setSyncStatus('synced');
       setLastSync(Date.now());
@@ -292,6 +285,7 @@ function App() {
   const handleSearchSelect = async (dateStr) => {
     setIsLoading(true);
     setText('');
+    setIsViewingYesterday(false);
     setCurrentDateKey(dateStr);
     setShowSearch(false);
   };
@@ -342,28 +336,10 @@ function App() {
 
   const isDone = wordCount >= 750;
 
-  const handleRescue = () => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toLocaleDateString('en-CA');
-
-    setIsLoading(true);
-    setText(''); // Clear immediately to prevent overwrite
-    setCurrentDateKey(yesterdayStr);
-    setShowRescueModal(false);
-  };
-
   return (
     <div className={`app-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
 
-      {showRescueModal && (
-        <RescueModal
-          onRescue={handleRescue}
-          onSkip={() => setShowRescueModal(false)}
-        />
-      )}
 
       <ProgressBar current={wordCount} target={750} />
 
@@ -379,6 +355,8 @@ function App() {
           setIsLoading(true);
           setText('');
 
+          // Reset yesterday mode when user manually selects a different date
+          setIsViewingYesterday(false);
           setCurrentDateKey(dateStr);
         }}
         onOpenAbout={() => setShowAbout(true)}
@@ -430,6 +408,7 @@ function App() {
           onChange={handleTextChange}
           programProgress={programProgress}
           totalDays={totalDays}
+          isYesterday={isViewingYesterday}
         />
 
         {isDone && (
