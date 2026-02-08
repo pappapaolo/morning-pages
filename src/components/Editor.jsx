@@ -1,122 +1,149 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
 import FlameIcon from './FlameIcon';
 
-const BULLET_LINE_RE = /^(\s*)(?:[-*+•])\s(.*)$/;
-const ORDERED_LINE_RE = /^(\s*)(\d+)([.)])\s(.*)$/;
+const BULLET_RE = /^\s*[-*+\u2022]\s+(.*)$/;
+const ORDERED_RE = /^\s*\d+[.)]\s+(.*)$/;
 
-const Editor = ({ value, onChange, programProgress, totalDays = 1, isYesterday = false }) => {
-  const textareaRef = useRef(null);
+const escapeHtml = (value = '') => {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+const isProbablyHtml = (value = '') => /<\/?[a-z][\s\S]*>/i.test(value);
+
+const plainTextToHtml = (text = '') => {
+  const normalized = String(text || '').replace(/\r\n/g, '\n');
+  if (!normalized.trim()) {
+    return '<p></p>';
+  }
+
+  const lines = normalized.split('\n');
+  const blocks = [];
+
+  let listType = null;
+  let listItems = [];
+
+  const flushList = () => {
+    if (!listType || listItems.length === 0) {
+      listType = null;
+      listItems = [];
+      return;
+    }
+
+    const tag = listType === 'ol' ? 'ol' : 'ul';
+    blocks.push(`<${tag}>${listItems.join('')}</${tag}>`);
+
+    listType = null;
+    listItems = [];
+  };
+
+  lines.forEach((rawLine) => {
+    const line = rawLine || '';
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushList();
+      blocks.push('<p></p>');
+      return;
+    }
+
+    const bulletMatch = line.match(BULLET_RE);
+    if (bulletMatch) {
+      if (listType !== 'ul') {
+        flushList();
+        listType = 'ul';
+      }
+      listItems.push(`<li>${escapeHtml(bulletMatch[1])}</li>`);
+      return;
+    }
+
+    const orderedMatch = line.match(ORDERED_RE);
+    if (orderedMatch) {
+      if (listType !== 'ol') {
+        flushList();
+        listType = 'ol';
+      }
+      listItems.push(`<li>${escapeHtml(orderedMatch[1])}</li>`);
+      return;
+    }
+
+    flushList();
+    blocks.push(`<p>${escapeHtml(line)}</p>`);
+  });
+
+  flushList();
+
+  return blocks.join('') || '<p></p>';
+};
+
+const normalizeIncomingContent = (value = '') => {
+  if (!value || !String(value).trim()) {
+    return '<p></p>';
+  }
+
+  if (isProbablyHtml(value)) {
+    return String(value);
+  }
+
+  return plainTextToHtml(value);
+};
+
+const Editor = ({
+  valueHtml,
+  plainText,
+  onChange,
+  programProgress,
+  totalDays = 1,
+  isYesterday = false,
+}) => {
   const [isFocused, setIsFocused] = useState(false);
 
-  // Grow with content to keep writing flow in the page scroll.
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder: '',
+      }),
+    ],
+    content: '<p></p>',
+    editorProps: {
+      attributes: {
+        class: 'editor-prosemirror',
+      },
+    },
+    onFocus: () => setIsFocused(true),
+    onBlur: () => setIsFocused(false),
+    onUpdate: ({ editor: instance }) => {
+      if (!onChange) return;
+      const text = instance.getText({ blockSeparator: '\n' }).replace(/\u00a0/g, ' ');
+      const html = instance.getHTML();
+      onChange({ text, html });
+    },
+  }, [onChange]);
+
   useEffect(() => {
-    if (!textareaRef.current) return;
-    textareaRef.current.style.height = 'auto';
-    const minHeightPx = window.innerHeight * 0.5;
-    textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, minHeightPx)}px`;
-  }, [value]);
+    if (!editor) return;
 
-  const setCursorPosition = (position) => {
-    requestAnimationFrame(() => {
-      if (!textareaRef.current) return;
-      textareaRef.current.selectionStart = position;
-      textareaRef.current.selectionEnd = position;
-    });
-  };
+    const normalized = normalizeIncomingContent(valueHtml);
+    const current = editor.getHTML();
 
-  const replaceRange = (text, start, end, replacement) => {
-    return `${text.slice(0, start)}${replacement}${text.slice(end)}`;
-  };
-
-  const getLineBounds = (text, cursor) => {
-    const lineStart = text.lastIndexOf('\n', Math.max(0, cursor - 1)) + 1;
-    const nextBreak = text.indexOf('\n', cursor);
-    const lineEnd = nextBreak === -1 ? text.length : nextBreak;
-    return {
-      lineStart,
-      lineEnd,
-      line: text.slice(lineStart, lineEnd),
-    };
-  };
-
-  const handleEditorChange = (e) => {
-    if (onChange) onChange(e.target.value);
-  };
-
-  const handleKeyDown = (e) => {
-    if (!textareaRef.current || !onChange) return;
-
-    const selectionStart = textareaRef.current.selectionStart;
-    const selectionEnd = textareaRef.current.selectionEnd;
-
-    if (selectionStart !== selectionEnd) return;
-
-    const { lineStart, lineEnd, line } = getLineBounds(value, selectionStart);
-
-    if (e.key === ' ') {
-      const beforeCursor = value.slice(lineStart, selectionStart);
-      const bulletShortcut = beforeCursor.match(/^(\s*)[-*+]$/);
-      if (!bulletShortcut) return;
-
-      e.preventDefault();
-      const indent = bulletShortcut[1];
-      const replacement = `${indent}• `;
-      const updated = replaceRange(value, lineStart, selectionStart, replacement);
-      onChange(updated);
-      setCursorPosition(lineStart + replacement.length);
-      return;
+    if (current !== normalized) {
+      editor.commands.setContent(normalized, false);
     }
+  }, [editor, valueHtml]);
 
-    if (e.key !== 'Enter') return;
-
-    const bulletMatch = line.match(BULLET_LINE_RE);
-    if (bulletMatch) {
-      e.preventDefault();
-      const indent = bulletMatch[1];
-      const body = bulletMatch[2];
-
-      if (body.trim() === '') {
-        const updated = replaceRange(value, lineStart, lineEnd, '');
-        onChange(updated);
-        setCursorPosition(lineStart);
-        return;
-      }
-
-      const insertion = `\n${indent}• `;
-      const updated = replaceRange(value, selectionStart, selectionEnd, insertion);
-      onChange(updated);
-      setCursorPosition(selectionStart + insertion.length);
-      return;
-    }
-
-    const orderedMatch = line.match(ORDERED_LINE_RE);
-    if (!orderedMatch) return;
-
-    e.preventDefault();
-    const indent = orderedMatch[1];
-    const number = Number(orderedMatch[2]);
-    const delimiter = orderedMatch[3];
-    const body = orderedMatch[4];
-
-    if (body.trim() === '') {
-      const updated = replaceRange(value, lineStart, lineEnd, '');
-      onChange(updated);
-      setCursorPosition(lineStart);
-      return;
-    }
-
-    const nextPrefix = `${indent}${number + 1}${delimiter} `;
-    const insertion = `\n${nextPrefix}`;
-    const updated = replaceRange(value, selectionStart, selectionEnd, insertion);
-    onChange(updated);
-    setCursorPosition(selectionStart + insertion.length);
-  };
-
-  const showPlaceholder = !value || value.trim() === '';
+  const showPlaceholder = !plainText || plainText.trim() === '';
   const isFirstDay = programProgress.week === 1 && programProgress.day === 1;
 
   return (
-    <div className="editor-container" onClick={() => textareaRef.current?.focus()}>
+    <div className="editor-container" onClick={() => editor?.commands.focus('end')}>
       {showPlaceholder && (
         <div className={`placeholder-overlay ${isFocused ? 'dimmed' : ''} ${!isFirstDay ? 'minimal' : ''}`}>
           {isFirstDay ? (
@@ -145,17 +172,7 @@ const Editor = ({ value, onChange, programProgress, totalDays = 1, isYesterday =
         </div>
       )}
 
-      <textarea
-        ref={textareaRef}
-        className="editor-content"
-        value={value}
-        onChange={handleEditorChange}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        spellCheck={false}
-        aria-label="Morning pages editor"
-      />
+      <EditorContent editor={editor} className="editor-content" />
 
       <style>{`
         .editor-container {
@@ -241,22 +258,52 @@ const Editor = ({ value, onChange, programProgress, totalDays = 1, isYesterday =
 
         .editor-content {
           width: 100%;
+        }
+
+        .editor-content .editor-prosemirror,
+        .editor-content .ProseMirror {
+          width: 100%;
           outline: none;
           border: none;
           padding: 0;
           margin: 0;
-          resize: none;
-          overflow: hidden;
+          min-height: 50vh;
           background: transparent;
           font-family: var(--font-body);
           font-size: 1.15rem;
           line-height: 1.6;
           color: var(--color-text);
-          min-height: 50vh;
           white-space: pre-wrap;
           word-break: break-word;
           position: relative;
           z-index: 10;
+        }
+
+        .editor-content .ProseMirror p {
+          margin: 0 0 0.95em 0;
+        }
+
+        .editor-content .ProseMirror p:last-child {
+          margin-bottom: 0;
+        }
+
+        .editor-content .ProseMirror ul,
+        .editor-content .ProseMirror ol {
+          margin: 0.2em 0 0.95em 0.5em;
+          padding-left: 1.35em;
+        }
+
+        .editor-content .ProseMirror li {
+          margin: 0.22em 0;
+        }
+
+        .editor-content .ProseMirror li p {
+          margin: 0;
+        }
+
+        .editor-content .ProseMirror ul li::marker,
+        .editor-content .ProseMirror ol li::marker {
+          color: var(--color-dim);
         }
       `}</style>
     </div>

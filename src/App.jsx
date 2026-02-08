@@ -27,6 +27,7 @@ function App() {
   const [currentDateKey, setCurrentDateKey] = useState(() => new Date().toLocaleDateString('en-CA'));
 
   const [text, setText] = useState('');
+  const [textHtml, setTextHtml] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [startTime, setStartTime] = useState(null);
@@ -59,12 +60,15 @@ function App() {
       setStartTime(null);
       setStartWordCount(0);
 
-      const savedText = await storage.getEntry(currentDateKey);
+      const savedEntry = await storage.getEntryData(currentDateKey);
+      const savedText = savedEntry.content || '';
+      const savedHtml = savedEntry.contentHtml || savedText;
 
       // Always set text, even if empty, to ensure clean state
-      setText(savedText || '');
+      setText(savedText);
+      setTextHtml(savedHtml);
 
-      const count = calculateWordCount(savedText || '');
+      const count = calculateWordCount(savedText);
       setWordCount(count);
 
       // Re-populate milestones
@@ -156,13 +160,16 @@ function App() {
     }
 
     // Get current local entry for this date
-    const localContent = await storage.getEntry(dateStr);
+    const localEntry = await storage.getEntryData(dateStr);
+    const localContent = localEntry.content || '';
+    const localContentHtml = localEntry.contentHtml || localContent;
     const cloudContent = cloudEntry.content || '';
+    const cloudContentHtml = cloudEntry.contentHtml || cloudContent;
 
     // Only update if cloud is actually different and newer
-    if (cloudContent !== localContent) {
+    if (cloudContent !== localContent || cloudContentHtml !== localContentHtml) {
       // Save to local storage
-      await storage.saveEntry(dateStr, cloudContent);
+      await storage.saveEntry(dateStr, cloudContent, cloudContentHtml);
 
       // If this is the current date being edited, update the UI
       if (dateStr === currentDateKey) {
@@ -174,6 +181,7 @@ function App() {
 
         if (cloudTime > localTime) {
           setText(cloudContent);
+          setTextHtml(cloudContentHtml);
           setWordCount(calculateWordCount(cloudContent));
         }
       }
@@ -191,9 +199,12 @@ function App() {
       setLastSync(Date.now());
 
       // Reload current entry in case it was updated from cloud
-      const savedText = await storage.getEntry(currentDateKey);
-      setText(savedText || '');
-      setWordCount(calculateWordCount(savedText || ''));
+      const savedEntry = await storage.getEntryData(currentDateKey);
+      const savedText = savedEntry.content || '';
+      const savedHtml = savedEntry.contentHtml || savedText;
+      setText(savedText);
+      setTextHtml(savedHtml);
+      setWordCount(calculateWordCount(savedText));
       const streakInfo = await storage.getStreak();
       setStreak(streakInfo.current);
     } catch (err) {
@@ -241,9 +252,12 @@ function App() {
 
   // Handler for import completion - reload current entry
   const handleImportComplete = useCallback(async () => {
-    const savedText = await storage.getEntry(currentDateKey);
-    setText(savedText || '');
-    setWordCount(calculateWordCount(savedText || ''));
+    const savedEntry = await storage.getEntryData(currentDateKey);
+    const savedText = savedEntry.content || '';
+    const savedHtml = savedEntry.contentHtml || savedText;
+    setText(savedText);
+    setTextHtml(savedHtml);
+    setWordCount(calculateWordCount(savedText));
     const streakInfo = await storage.getStreak();
     setStreak(streakInfo.current);
 
@@ -283,12 +297,12 @@ function App() {
 
 
     const timeoutId = setTimeout(async () => {
-      await storage.saveEntry(currentDateKey, text);
+      await storage.saveEntry(currentDateKey, text, textHtml);
 
       // Sync to cloud if logged in
       if (user && isFirebaseConfigured) {
         try {
-          const entry = { content: text, lastUpdated: Date.now() };
+          const entry = { content: text, contentHtml: textHtml, lastUpdated: Date.now() };
           // Track this update to prevent echo from real-time listener
           lastLocalUpdateRef.current = { dateStr: currentDateKey, timestamp: Date.now() };
           await syncService.syncEntry(user.uid, currentDateKey, entry);
@@ -310,29 +324,43 @@ function App() {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [text, wordCount, isLoading, milestonesReached, currentDateKey, startTime, user, isFirebaseConfigured]);
+  }, [text, textHtml, wordCount, isLoading, milestonesReached, currentDateKey, startTime, user, isFirebaseConfigured]);
 
-  const handleTextChange = (newText) => {
-    if (!startTime && newText.length > 0) {
+  const handleTextChange = ({ text: newText = '', html: newHtml = '' }) => {
+    const safeText = newText || '';
+    const safeHtml = newHtml || safeText;
+    const nextWordCount = calculateWordCount(safeText);
+
+    if (!startTime && nextWordCount > 0) {
       setStartTime(Date.now());
       setStartWordCount(wordCount);
     }
 
-    if (startTime && newText.length === 0) {
+    if (startTime && nextWordCount === 0) {
       setStartTime(null);
       setStartWordCount(0);
     }
 
-    setText(newText);
-    setWordCount(calculateWordCount(newText));
+    setText(safeText);
+    setTextHtml(safeHtml);
+    setWordCount(nextWordCount);
   };
 
   const desktopQuery = '(min-width: 1024px)';
   const getDesktopMatch = () => typeof window !== 'undefined' && window.matchMedia(desktopQuery).matches;
+  const getInitialSidebarState = () => {
+    if (typeof window === 'undefined') return false;
+
+    const savedState = window.localStorage.getItem('sidebarOpen');
+    if (savedState === 'true') return true;
+    if (savedState === 'false') return false;
+
+    return getDesktopMatch();
+  };
 
   // Sidebar State
   const [isDesktop, setIsDesktop] = useState(getDesktopMatch);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(getDesktopMatch);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(getInitialSidebarState);
 
   // Search Modal State
   const [showSearch, setShowSearch] = useState(false);
@@ -380,6 +408,7 @@ function App() {
   const handleSearchSelect = async (dateStr) => {
     setIsLoading(true);
     setText('');
+    setTextHtml('');
     setIsViewingYesterday(false);
     setCurrentDateKey(dateStr);
     setShowSearch(false);
@@ -391,7 +420,6 @@ function App() {
     const mediaQuery = window.matchMedia(desktopQuery);
     const handleDesktopChange = (event) => {
       setIsDesktop(event.matches);
-      setIsSidebarOpen(event.matches);
     };
 
     handleDesktopChange(mediaQuery);
@@ -404,6 +432,11 @@ function App() {
     mediaQuery.addListener(handleDesktopChange);
     return () => mediaQuery.removeListener(handleDesktopChange);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('sidebarOpen', String(isSidebarOpen));
+  }, [isSidebarOpen]);
 
   useEffect(() => {
     const shouldLockMobileScroll = isSidebarOpen && !isDesktop;
@@ -445,12 +478,12 @@ function App() {
 
   const displayDateStr = getDisplayDate();
 
-  if (isLoading && !text) return <div className="loading">Loading...</div>; // Show loading if no text yet
+  if (isLoading && !text && !textHtml) return <div className="loading">Loading...</div>; // Show loading if no text yet
 
   const isDone = wordCount >= 750;
 
   return (
-    <div className={`app-container ${isSidebarOpen ? 'sidebar-open' : ''} ${isDesktop ? 'desktop-layout' : ''}`}>
+    <div className={`app-container ${isSidebarOpen ? 'sidebar-open' : ''} ${isDesktop ? 'desktop-layout' : ''} ${isDesktop && isSidebarOpen ? 'desktop-sidebar-open' : ''}`}>
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
 
 
@@ -468,6 +501,7 @@ function App() {
           // FIX: Set loading and clear text BEFORE changing key to prevent race condition
           setIsLoading(true);
           setText('');
+          setTextHtml('');
 
           // Reset yesterday mode when user manually selects a different date
           setIsViewingYesterday(false);
@@ -503,15 +537,22 @@ function App() {
 
       {/* Hamburger menu - fixed top left */}
       <button
-        className={`hamburger-menu ${isSidebarOpen ? 'open' : ''}`}
+        className={`hamburger-menu ${isSidebarOpen ? 'is-open' : ''}`}
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         aria-label={isSidebarOpen ? 'Close menu' : 'Open menu'}
         title="Menu"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <line x1="9" y1="3" x2="9" y2="21" />
-        </svg>
+        {isSidebarOpen ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        ) : (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <line x1="9" y1="3" x2="9" y2="21" />
+          </svg>
+        )}
       </button>
 
       <div className="content-shell">
@@ -530,7 +571,8 @@ function App() {
 
         <main>
           <Editor
-            value={text}
+            valueHtml={textHtml}
+            plainText={text}
             onChange={handleTextChange}
             programProgress={programProgress}
             totalDays={totalDays}
@@ -557,6 +599,9 @@ function App() {
       </div>
 
       <style>{`
+        .app-container {
+            transition: padding-left 0.28s cubic-bezier(0.33, 1, 0.68, 1), max-width 0.28s cubic-bezier(0.33, 1, 0.68, 1);
+        }
         .toast {
             position: fixed;
             top: 20px;
@@ -638,15 +683,15 @@ function App() {
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.2s, border-color 0.2s;
+            transition: color 0.2s, border-color 0.2s, left 0.25s ease;
         }
         .hamburger-menu:hover {
             color: var(--color-text);
             border-color: var(--color-icon);
         }
-        .hamburger-menu.open {
-            opacity: 0;
-            pointer-events: none;
+        .hamburger-menu.is-open {
+            color: var(--color-text);
+            border-color: var(--color-icon);
         }
         .title {
             font-family: var(--font-body);
@@ -684,15 +729,19 @@ function App() {
             .header {
                 padding-left: 2.6rem;
             }
+            .hamburger-menu.is-open {
+                opacity: 0;
+                pointer-events: none;
+            }
         }
 
         @media (min-width: 1024px) {
-            .app-container.desktop-layout {
+            .app-container.desktop-layout.desktop-sidebar-open {
                 max-width: calc(var(--max-width) + 320px + 2rem);
                 padding-left: calc(320px + 2rem);
             }
-            .hamburger-menu {
-                display: none;
+            .app-container.desktop-layout.desktop-sidebar-open .hamburger-menu {
+                left: 340px;
             }
             .header {
                 padding-left: 0;

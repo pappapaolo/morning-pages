@@ -4,18 +4,60 @@ const STORE_KEY_PREFIX = 'morning_page_';
 
 const getDateKey = (dateStr) => `${STORE_KEY_PREFIX}${dateStr}`;
 
+const stripHtml = (value = '') =>
+    value
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const normalizeEntry = (rawEntry) => {
+    if (!rawEntry) {
+        return {
+            content: '',
+            contentHtml: '',
+            lastUpdated: 0
+        };
+    }
+
+    if (typeof rawEntry === 'string') {
+        return {
+            content: rawEntry,
+            contentHtml: rawEntry,
+            lastUpdated: 0
+        };
+    }
+
+    const contentHtml = typeof rawEntry.contentHtml === 'string' ? rawEntry.contentHtml : '';
+    const contentFromField = typeof rawEntry.content === 'string' ? rawEntry.content : '';
+    const content = contentFromField || stripHtml(contentHtml);
+
+    return {
+        ...rawEntry,
+        content,
+        contentHtml: contentHtml || content,
+        lastUpdated: rawEntry.lastUpdated || 0
+    };
+};
+
 export const storage = {
-    async saveEntry(dateStr, content) {
+    async saveEntry(dateStr, content, contentHtml = content) {
         const entry = {
             content,
+            contentHtml,
             lastUpdated: Date.now() // timestamp
         };
         await set(getDateKey(dateStr), entry);
     },
 
     async getEntry(dateStr) {
-        const data = await get(getDateKey(dateStr));
-        return data ? data.content : '';
+        const data = normalizeEntry(await get(getDateKey(dateStr)));
+        return data.content;
+    },
+
+    async getEntryData(dateStr) {
+        return normalizeEntry(await get(getDateKey(dateStr)));
     },
 
     async getAllKeys() {
@@ -78,7 +120,7 @@ export const storage = {
 
         const entries = {};
         for (const key of dateKeys) {
-            const data = await get(key);
+            const data = normalizeEntry(await get(key));
             const dateStr = key.replace(STORE_KEY_PREFIX, '');
             entries[dateStr] = data;
         }
@@ -100,7 +142,7 @@ export const storage = {
 
         for (const [dateStr, data] of Object.entries(entries)) {
             const key = getDateKey(dateStr);
-            await set(key, data);
+            await set(key, normalizeEntry(data));
             imported++;
         }
 

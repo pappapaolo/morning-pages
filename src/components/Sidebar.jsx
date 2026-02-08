@@ -39,7 +39,7 @@ const Sidebar = ({
     };
 
     useEffect(() => {
-        if (!(isOpen || isDesktop)) return undefined;
+        if (!isOpen) return undefined;
 
         const timer = setTimeout(() => {
             loadEntries();
@@ -63,14 +63,12 @@ const Sidebar = ({
         <div className={`sidebar ${isOpen ? 'open' : ''} ${isDesktop ? 'desktop' : ''}`}>
             <div className="sidebar-header">
                 <span className="sidebar-logo">MP</span>
-                {!isDesktop && (
-                    <button className="sidebar-close-btn" onClick={onClose} aria-label="Close sidebar">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
-                )}
+                <button className="sidebar-close-btn" onClick={onClose} aria-label="Close sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
             </div>
 
             <button
@@ -131,17 +129,18 @@ const Sidebar = ({
             border-right: 1px solid var(--color-border);
             z-index: 180;
             transform: translateX(-104%);
-            transition: transform 0.25s ease;
+            transition: transform 0.28s cubic-bezier(0.33, 1, 0.68, 1);
             padding: 18px;
             font-family: var(--font-ui);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             box-shadow: var(--shadow-sidebar);
+            pointer-events: none;
         }
-        .sidebar.open,
-        .sidebar.desktop {
+        .sidebar.open {
             transform: translateX(0);
+            pointer-events: auto;
         }
         .sidebar.desktop {
             box-shadow: none;

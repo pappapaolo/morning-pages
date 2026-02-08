@@ -20,6 +20,38 @@ let currentUserId = null;
 let isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 let onlineCallbacks = [];
 
+const stripHtml = (value = '') =>
+  value
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const getPlainContent = (entry) => {
+  if (!entry) return '';
+  if (typeof entry.content === 'string' && entry.content.length > 0) return entry.content;
+  if (typeof entry.contentHtml === 'string' && entry.contentHtml.length > 0) {
+    return stripHtml(entry.contentHtml);
+  }
+  return '';
+};
+
+const normalizeEntryShape = (entry) => {
+  const content = getPlainContent(entry);
+  const contentHtml =
+    typeof entry?.contentHtml === 'string' && entry.contentHtml.length > 0
+      ? entry.contentHtml
+      : content;
+
+  return {
+    ...entry,
+    content,
+    contentHtml,
+    lastUpdated: entry?.lastUpdated || 0
+  };
+};
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     isOnline = true;
@@ -36,35 +68,37 @@ if (typeof window !== 'undefined') {
  * Smart conflict resolution - never lose substantial content
  */
 function resolveConflict(local, cloud) {
-  const localContent = local?.content || '';
-  const cloudContent = cloud?.content || '';
+  const normalizedLocal = normalizeEntryShape(local);
+  const normalizedCloud = normalizeEntryShape(cloud);
+  const localContent = normalizedLocal.content;
+  const cloudContent = normalizedCloud.content;
   const localTime = local?.lastUpdated || 0;
   const cloudTime = cloud?.lastUpdated || 0;
 
   // Rule 1: Never let empty/tiny version overwrite substantial content
   if (cloudContent.length < 50 && localContent.length > 200) {
-    return local; // Keep local, cloud looks like accidental clear
+    return normalizedLocal; // Keep local, cloud looks like accidental clear
   }
   if (localContent.length < 50 && cloudContent.length > 200) {
-    return cloud; // Keep cloud, local looks like accidental clear
+    return normalizedCloud; // Keep cloud, local looks like accidental clear
   }
 
   // Rule 2: If content is identical or nearly identical, use newer timestamp
   if (localContent === cloudContent) {
-    return cloudTime > localTime ? cloud : local;
+    return cloudTime > localTime ? normalizedCloud : normalizedLocal;
   }
 
   // Rule 3: If one contains the other (normal edit flow), use the longer/newer
   if (cloudContent.includes(localContent.slice(0, 100)) && cloudContent.length >= localContent.length) {
-    return cloud;
+    return normalizedCloud;
   }
   if (localContent.includes(cloudContent.slice(0, 100)) && localContent.length >= cloudContent.length) {
-    return local;
+    return normalizedLocal;
   }
 
   // Rule 4: Both have unique substantial content - merge them
-  const base = localTime < cloudTime ? local : cloud;
-  const newer = localTime < cloudTime ? cloud : local;
+  const base = localTime < cloudTime ? normalizedLocal : normalizedCloud;
+  const newer = localTime < cloudTime ? normalizedCloud : normalizedLocal;
 
   const baseContent = base?.content || '';
   const newerContent = newer?.content || '';
@@ -75,12 +109,13 @@ function resolveConflict(local, cloud) {
     // Less than 50% overlap and newer has substantial content - merge
     return {
       content: baseContent + '\n\n---\n\n' + newerContent,
+      contentHtml: baseContent + '\n\n---\n\n' + newerContent,
       lastUpdated: Date.now()
     };
   }
 
   // Default to newer version
-  return cloudTime > localTime ? cloud : local;
+  return cloudTime > localTime ? normalizedCloud : normalizedLocal;
 }
 
 /**
@@ -229,7 +264,7 @@ export const syncService = {
 
       if (!localEntry) {
         // Cloud has an entry we don't have locally
-        merged[dateStr] = cloudEntry;
+        merged[dateStr] = normalizeEntryShape(cloudEntry);
       } else {
         // Both have the entry - use smart conflict resolution
         merged[dateStr] = resolveConflict(localEntry, cloudEntry);
