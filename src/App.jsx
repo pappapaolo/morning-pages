@@ -673,7 +673,7 @@ function App() {
             left: 1rem;
             z-index: 190;
             background: var(--color-bg);
-            border: 1px solid var(--color-border);
+            border: none;
             border-radius: 8px;
             color: var(--color-icon);
             width: 34px;
@@ -683,15 +683,13 @@ function App() {
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.2s, border-color 0.2s, left 0.25s ease;
+            transition: color 0.2s, left 0.25s ease;
         }
         .hamburger-menu:hover {
             color: var(--color-text);
-            border-color: var(--color-icon);
         }
         .hamburger-menu.is-open {
             color: var(--color-text);
-            border-color: var(--color-icon);
         }
         .title {
             font-family: var(--font-body);
@@ -708,7 +706,7 @@ function App() {
             gap: 0.25rem;
         }
         .header-streak-count {
-            font-family: var(--font-sans);
+            font-family: var(--font-body);
             font-size: 0.9rem;
             color: var(--color-dim);
             font-weight: 500;
