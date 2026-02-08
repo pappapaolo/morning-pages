@@ -707,7 +707,7 @@ function App() {
         }
         .header-streak-count {
             font-family: var(--font-body);
-            font-size: 0.9rem;
+            font-size: 1.15rem;
             color: var(--color-dim);
             font-weight: 500;
         }
