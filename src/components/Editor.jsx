@@ -285,7 +285,7 @@ const Editor = ({
         }
 
         .editor-content .ProseMirror p {
-          margin: 0 0 0.95em 0;
+          margin: 0 0 0.7em 0;
         }
 
         .editor-content .ProseMirror p:last-child {
@@ -294,12 +294,12 @@ const Editor = ({
 
         .editor-content .ProseMirror ul,
         .editor-content .ProseMirror ol {
-          margin: 0.2em 0 0.95em 0.5em;
-          padding-left: 1.35em;
+          margin: -0.05em 0 0.7em 0.18em;
+          padding-left: 1.05em;
         }
 
         .editor-content .ProseMirror li {
-          margin: 0.22em 0;
+          margin: 0.12em 0;
         }
 
         .editor-content .ProseMirror li p {
