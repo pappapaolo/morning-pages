@@ -128,7 +128,7 @@ async function processRetryQueue() {
     try {
       await syncService.syncEntry(currentUserId, item.dateStr, item.entry, true);
       retryQueue.delete(item.dateStr);
-    } catch (err) {
+    } catch {
       const newRetries = item.retries + 1;
       if (newRetries >= 5) {
         console.error(`Giving up on syncing ${item.dateStr} after 5 retries`);

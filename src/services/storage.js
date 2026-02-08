@@ -1,13 +1,8 @@
-import { get, set, keys, del } from 'idb-keyval';
+import { get, set, keys } from 'idb-keyval';
 
 const STORE_KEY_PREFIX = 'morning_page_';
 
 const getDateKey = (dateStr) => `${STORE_KEY_PREFIX}${dateStr}`;
-
-// Helper to get raw entry with metadata
-const getRawEntry = async (key) => {
-    return await get(key);
-};
 
 export const storage = {
     async saveEntry(dateStr, content) {
@@ -72,7 +67,7 @@ export const storage = {
         return { current: streak, max: streak, lastDate: todayStr }; // minimal compat object
     },
 
-    async updateStreak(todayDateStr) {
+    async updateStreak() {
         // Just force a recalculation/get since we moved to dynamic
         return await this.getStreak();
     },

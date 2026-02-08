@@ -6,19 +6,18 @@ import StatsDisplay from './components/StatsDisplay';
 import Sidebar from './components/Sidebar';
 import AboutModal from './components/AboutModal';
 import FlameIcon from './components/FlameIcon';
-import Keyboard from './components/Keyboard';
 import SearchModal from './components/SearchModal';
 import { storage } from './services/storage';
 import { syncService } from './services/sync';
-import { useAuth } from './contexts/AuthContext';
-import { Analytics } from "@vercel/analytics/react";
+import { useAuth } from './contexts/auth-context';
+import { Analytics } from '@vercel/analytics/react';
 
 function App() {
   // Auth state
   const { user, isConfigured: isFirebaseConfigured } = useAuth();
 
   // Sync state
-  const [syncStatus, setSyncStatus] = useState(null); // 'syncing', 'synced', 'error', 'offline'
+  const [syncStatus, setSyncStatus] = useState(() => (syncService.isOnline() ? null : 'offline')); // 'syncing', 'synced', 'error', 'offline'
   const [lastSync, setLastSync] = useState(null);
 
   // Track last local update to prevent echo from real-time listener
@@ -200,22 +199,29 @@ function App() {
     } catch (err) {
       console.error('Sync failed:', err);
       setSyncStatus('error');
+      if (err?.code === 'permission-denied') {
+        triggerToast('Cloud sync denied by Firestore rules. Sign in again and verify Firebase rules.');
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        triggerToast('Sign-in domain is not authorized in Firebase Auth settings.');
+      }
     }
   }, [user, isFirebaseConfigured, currentDateKey]);
 
   // Trigger sync when user logs in and set up real-time listener
   useEffect(() => {
     if (user && isFirebaseConfigured) {
-      handleSync();
+      const timer = setTimeout(() => {
+        handleSync();
+      }, 0);
 
       // Subscribe to real-time updates
       const unsubscribe = syncService.subscribeToUpdates(user.uid, handleRemoteUpdate);
 
       return () => {
+        clearTimeout(timer);
         unsubscribe();
       };
     } else {
-      setSyncStatus(null);
       syncService.unsubscribe();
     }
   }, [user, isFirebaseConfigured, handleSync, handleRemoteUpdate]);
@@ -229,11 +235,6 @@ function App() {
         setSyncStatus('offline');
       }
     });
-
-    // Set initial status
-    if (!syncService.isOnline()) {
-      setSyncStatus('offline');
-    }
 
     return unsubscribe;
   }, []);
@@ -255,12 +256,6 @@ function App() {
   // Save & Logic
   useEffect(() => {
     if (isLoading) return;
-
-    if (!startTime && text.length > 0) {
-      setStartTime(Date.now());
-      // Track how many words we started with to calculate WPM correctly for *this* session
-      setStartWordCount(wordCount);
-    }
 
     // Milestones Logic
     // Pages roughly: 250, 500, 750
@@ -306,6 +301,9 @@ function App() {
             setSyncStatus('offline');
           } else {
             setSyncStatus('error');
+            if (err?.code === 'permission-denied') {
+              triggerToast('Cloud sync blocked by Firestore permissions.');
+            }
           }
         }
       }
@@ -315,12 +313,26 @@ function App() {
   }, [text, wordCount, isLoading, milestonesReached, currentDateKey, startTime, user, isFirebaseConfigured]);
 
   const handleTextChange = (newText) => {
+    if (!startTime && newText.length > 0) {
+      setStartTime(Date.now());
+      setStartWordCount(wordCount);
+    }
+
+    if (startTime && newText.length === 0) {
+      setStartTime(null);
+      setStartWordCount(0);
+    }
+
     setText(newText);
     setWordCount(calculateWordCount(newText));
   };
 
+  const desktopQuery = '(min-width: 1024px)';
+  const getDesktopMatch = () => typeof window !== 'undefined' && window.matchMedia(desktopQuery).matches;
+
   // Sidebar State
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(getDesktopMatch);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(getDesktopMatch);
 
   // Search Modal State
   const [showSearch, setShowSearch] = useState(false);
@@ -373,16 +385,34 @@ function App() {
     setShowSearch(false);
   };
 
-  // Keyboard State (persisted to localStorage)
-  const [showKeyboard, setShowKeyboard] = useState(() => {
-    return localStorage.getItem('showKeyboard') === 'true';
-  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
 
-  const toggleKeyboard = () => {
-    const newValue = !showKeyboard;
-    setShowKeyboard(newValue);
-    localStorage.setItem('showKeyboard', String(newValue));
-  };
+    const mediaQuery = window.matchMedia(desktopQuery);
+    const handleDesktopChange = (event) => {
+      setIsDesktop(event.matches);
+      setIsSidebarOpen(event.matches);
+    };
+
+    handleDesktopChange(mediaQuery);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleDesktopChange);
+      return () => mediaQuery.removeEventListener('change', handleDesktopChange);
+    }
+
+    mediaQuery.addListener(handleDesktopChange);
+    return () => mediaQuery.removeListener(handleDesktopChange);
+  }, []);
+
+  useEffect(() => {
+    const shouldLockMobileScroll = isSidebarOpen && !isDesktop;
+    document.body.classList.toggle('sidebar-open-mobile', shouldLockMobileScroll);
+
+    return () => {
+      document.body.classList.remove('sidebar-open-mobile');
+    };
+  }, [isSidebarOpen, isDesktop]);
 
   // Derive display string from the locked currentDateKey
   // We have YYYY-MM-DD, need to create a date object safely
@@ -420,7 +450,7 @@ function App() {
   const isDone = wordCount >= 750;
 
   return (
-    <div className={`app-container ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+    <div className={`app-container ${isSidebarOpen ? 'sidebar-open' : ''} ${isDesktop ? 'desktop-layout' : ''}`}>
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
 
 
@@ -429,6 +459,7 @@ function App() {
       <Sidebar
         currentDate={currentDateKey}
         isOpen={isSidebarOpen}
+        isDesktop={isDesktop}
         onClose={() => setIsSidebarOpen(false)}
         onSelectDate={async (dateStr) => {
           // Update the current context to the selected date
@@ -449,6 +480,14 @@ function App() {
         onImportComplete={handleImportComplete}
       />
 
+      {isSidebarOpen && !isDesktop && (
+        <button
+          className="sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-label="Close sidebar"
+        />
+      )}
+
       {showSearch && (
         <SearchModal
           entries={searchEntries}
@@ -464,8 +503,9 @@ function App() {
 
       {/* Hamburger menu - fixed top left */}
       <button
-        className="hamburger-menu"
+        className={`hamburger-menu ${isSidebarOpen ? 'open' : ''}`}
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        aria-label={isSidebarOpen ? 'Close menu' : 'Open menu'}
         title="Menu"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -474,47 +514,47 @@ function App() {
         </svg>
       </button>
 
-      <header className="header">
-        <h1 className="title">Morning Pages</h1>
-        <div className="header-right">
-          {streak > 0 && (
-            <div className="header-streak">
-              <FlameIcon size="small" />
-              <span className="header-streak-count">{streak}</span>
+      <div className="content-shell">
+        <header className="header">
+          <h1 className="title">Morning Pages</h1>
+          <div className="header-right">
+            {streak > 0 && (
+              <div className="header-streak">
+                <FlameIcon size="small" />
+                <span className="header-streak-count">{streak}</span>
+              </div>
+            )}
+            <div className="date-display">{displayDateStr}</div>
+          </div>
+        </header>
+
+        <main>
+          <Editor
+            value={text}
+            onChange={handleTextChange}
+            programProgress={programProgress}
+            totalDays={totalDays}
+            isYesterday={isViewingYesterday}
+          />
+
+          {isDone && (
+            <div className="done-message fade-in">
+              <h2>Done for the day. Come back tomorrow.</h2>
+              <p className="streak-display">Streak: {streak} days</p>
             </div>
           )}
-          <div className="date-display">{displayDateStr}</div>
-        </div>
-      </header>
 
-      <main>
-        <Editor
-          value={text}
-          onChange={handleTextChange}
-          programProgress={programProgress}
-          totalDays={totalDays}
-          isYesterday={isViewingYesterday}
-        />
+          <StatsDisplay
+            wordCount={wordCount}
+            sessionWords={Math.max(0, wordCount - startWordCount)}
+            streak={streak}
+            startTime={startTime}
+          />
 
-        {isDone && (
-          <div className="done-message fade-in">
-            <h2>Done for the day. Come back tomorrow.</h2>
-            <p className="streak-display">Streak: {streak} days</p>
-          </div>
-        )}
-
-        <StatsDisplay
-          wordCount={wordCount}
-          sessionWords={Math.max(0, wordCount - startWordCount)}
-          streak={streak}
-          startTime={startTime}
-        />
-
-        {/* Spacer to allow scrolling past the editor content */}
-        <div className={`spacer ${showKeyboard ? 'with-keyboard' : ''}`}></div>
-      </main>
-
-      <Keyboard isVisible={showKeyboard} onToggle={toggleKeyboard} />
+          {/* Spacer to allow scrolling past the editor content */}
+          <div className="spacer"></div>
+        </main>
+      </div>
 
       <style>{`
         .toast {
@@ -535,6 +575,21 @@ function App() {
         .toast.show {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
+        }
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            border: none;
+            padding: 0;
+            margin: 0;
+            background: rgba(0, 0, 0, 0.24);
+            z-index: 160;
+            cursor: pointer;
+        }
+        .content-shell {
+            width: 100%;
+            max-width: var(--max-width);
+            margin: 0 auto;
         }
         .done-message {
             text-align: left;
@@ -571,21 +626,27 @@ function App() {
             position: fixed;
             top: 1rem;
             left: 1rem;
-            z-index: 100;
-            background: transparent;
-            border: none;
+            z-index: 190;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
             color: var(--color-icon);
-            width: 24px;
-            height: 24px;
+            width: 34px;
+            height: 34px;
             cursor: pointer;
             padding: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.3s;
+            transition: color 0.2s, border-color 0.2s;
         }
         .hamburger-menu:hover {
             color: var(--color-text);
+            border-color: var(--color-icon);
+        }
+        .hamburger-menu.open {
+            opacity: 0;
+            pointer-events: none;
         }
         .title {
             font-family: var(--font-body);
@@ -618,14 +679,45 @@ function App() {
             height: 50vh;
             width: 100%;
         }
-        .spacer.with-keyboard {
-            height: calc(50vh + 180px);
+
+        @media (max-width: 1023px) {
+            .header {
+                padding-left: 2.6rem;
+            }
         }
-        
-        /* Mobile adjustment for date display if needed */
+
+        @media (min-width: 1024px) {
+            .app-container.desktop-layout {
+                max-width: calc(var(--max-width) + 320px + 2rem);
+                padding-left: calc(320px + 2rem);
+            }
+            .hamburger-menu {
+                display: none;
+            }
+            .header {
+                padding-left: 0;
+            }
+        }
+
         @media (max-width: 600px) {
+            .hamburger-menu {
+                top: 0.75rem;
+                left: 0.75rem;
+                width: 32px;
+                height: 32px;
+            }
+            .header {
+                margin-bottom: 1.25rem;
+                padding-left: 2.3rem;
+            }
+            .header-right {
+                gap: 0.6rem;
+            }
+            .title {
+                font-size: 1rem;
+            }
             .date-display {
-                font-size: 0.9rem; /* Smaller date on mobile */
+                font-size: 0.95rem;
             }
         }
       `}</style>

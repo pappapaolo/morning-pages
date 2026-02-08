@@ -1,26 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { storage } from '../services/storage';
 import AuthButton from './AuthButton';
 
-const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOpenSearch, entries: propEntries, syncStatus, lastSync, onImportComplete }) => {
+const Sidebar = ({
+    currentDate,
+    onSelectDate,
+    onOpenAbout,
+    isOpen,
+    isDesktop = false,
+    onClose,
+    onOpenSearch,
+    syncStatus,
+    lastSync,
+    onImportComplete,
+}) => {
     const [entries, setEntries] = useState([]);
-
-    useEffect(() => {
-        if (isOpen) {
-            loadEntries();
-        }
-    }, [isOpen]);
+    const [isExporting, setIsExporting] = useState(false);
 
     const loadEntries = async () => {
         const keys = await storage.getAllKeys();
-        const dateKeys = keys.filter(k => k.startsWith('morning_page_')).sort().reverse(); // Newest first
+        const dateKeys = keys.filter(k => k.startsWith('morning_page_')).sort().reverse();
 
         const processed = await Promise.all(dateKeys.map(async (k) => {
             const dateStr = k.replace('morning_page_', '');
             const content = await storage.getEntry(dateStr);
             return {
                 key: k,
-                dateStr: dateStr,
+                dateStr,
                 display: new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric'
@@ -28,30 +34,58 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
                 content: content || ''
             };
         }));
+
         setEntries(processed);
     };
 
+    useEffect(() => {
+        if (!(isOpen || isDesktop)) return undefined;
+
+        const timer = setTimeout(() => {
+            loadEntries();
+        }, 0);
+
+        return () => clearTimeout(timer);
+    }, [isOpen, isDesktop, currentDate]);
+
+    const handleExportBackup = async () => {
+        setIsExporting(true);
+        try {
+            const data = await storage.exportAllData();
+            const date = new Date().toISOString().slice(0, 10);
+            storage.downloadBackup(data, `morning-pages-backup-${date}.json`);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
-        <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-            {/* Sidebar Header with Logo and Close Button */}
+        <div className={`sidebar ${isOpen ? 'open' : ''} ${isDesktop ? 'desktop' : ''}`}>
             <div className="sidebar-header">
                 <span className="sidebar-logo">MP</span>
-                <button className="sidebar-close-btn" onClick={onClose}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                </button>
+                {!isDesktop && (
+                    <button className="sidebar-close-btn" onClick={onClose} aria-label="Close sidebar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                )}
             </div>
 
-            {/* Search Button */}
-            <button className="search-button" onClick={onOpenSearch}>
+            <button
+                className="search-button"
+                onClick={() => {
+                    onOpenSearch();
+                    if (!isDesktop) onClose();
+                }}
+            >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8" />
                     <path d="M21 21l-4.35-4.35" />
                 </svg>
                 <span>Search pages</span>
-                <span className="search-shortcut">&#8984;K</span>
+                <span className="search-shortcut">⌘K</span>
             </button>
 
             <div className="entry-list">
@@ -64,6 +98,7 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
                         className={`entry-item ${e.dateStr === currentDate ? 'active' : ''}`}
                         onClick={() => {
                             onSelectDate(e.dateStr);
+                            if (!isDesktop) onClose();
                         }}
                     >
                         {e.display}
@@ -72,6 +107,9 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             </div>
 
             <div className="sidebar-footer">
+                <button className="local-export-button" onClick={handleExportBackup} disabled={isExporting}>
+                    {isExporting ? 'Exporting...' : 'Export local backup'}
+                </button>
                 <div className="sidebar-auth">
                     <AuthButton
                         syncStatus={syncStatus}
@@ -85,29 +123,28 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             <style>{`
         .sidebar {
             position: fixed;
-            top: 0;
+            top: 6px;
             left: 0;
-            height: 100vh;
-            width: 280px;
-            background: #fafafa;
-            border-right: 0.5px solid rgba(0, 0, 0, 0.06);
-            z-index: 150;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            padding: 20px;
+            height: calc(100vh - 6px);
+            width: min(86vw, 320px);
+            background: var(--color-bg-sidebar);
+            border-right: 1px solid var(--color-border);
+            z-index: 180;
+            transform: translateX(-104%);
+            transition: transform 0.25s ease;
+            padding: 18px;
             font-family: var(--font-ui);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            box-shadow: var(--shadow-sidebar);
         }
-        @media (prefers-color-scheme: dark) {
-            .sidebar {
-                background: #1a1a1a;
-                border-right: 0.5px solid rgba(255, 255, 255, 0.06);
-            }
-        }
-        .sidebar.open {
+        .sidebar.open,
+        .sidebar.desktop {
             transform: translateX(0);
+        }
+        .sidebar.desktop {
+            box-shadow: none;
         }
         .sidebar-header {
             display: flex;
@@ -198,6 +235,26 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
             border-top: 1px solid var(--color-border);
             padding-top: 1rem;
         }
+        .local-export-button {
+            width: 100%;
+            margin-bottom: 0.75rem;
+            padding: 0.55rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg);
+            color: var(--color-text);
+            font-family: var(--font-ui);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .local-export-button:hover {
+            background: var(--color-bg-hover);
+        }
+        .local-export-button:disabled {
+            opacity: 0.65;
+            cursor: default;
+        }
         .about-link {
             background: none;
             border: none;
@@ -209,6 +266,17 @@ const Sidebar = ({ currentDate, onSelectDate, onOpenAbout, isOpen, onClose, onOp
         }
         .sidebar-auth {
             margin-bottom: 1rem;
+        }
+        @media (max-width: 760px) {
+            .search-shortcut {
+                display: none;
+            }
+        }
+        @media (max-width: 600px) {
+            .sidebar {
+                width: min(90vw, 320px);
+                padding: 14px;
+            }
         }
       `}</style>
         </div>

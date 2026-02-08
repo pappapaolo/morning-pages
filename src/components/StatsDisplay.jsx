@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const StatsDisplay = ({ wordCount, sessionWords, streak, startTime }) => {
+const StatsDisplay = ({ wordCount, startTime }) => {
   const [wpm, setWpm] = useState(0);
   const [elapsed, setElapsed] = useState('0:00');
   const typingHistoryRef = useRef([]);

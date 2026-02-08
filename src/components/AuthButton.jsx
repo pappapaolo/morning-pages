@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/auth-context';
 import { storage } from '../services/storage';
 
 const AuthButton = ({ onSignIn, onSignOut, syncStatus, lastSync, onImportComplete }) => {

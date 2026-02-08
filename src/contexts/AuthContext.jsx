@@ -1,40 +1,61 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged
 } from 'firebase/auth';
 import { auth, googleProvider, isFirebaseConfigured } from '../services/firebase';
+import { AuthContext } from './auth-context';
 
-const AuthContext = createContext(null);
+const getFriendlyAuthError = (err) => {
+  const code = err?.code || '';
+  const host = typeof window !== 'undefined' ? window.location.hostname : 'your domain';
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  switch (code) {
+    case 'auth/popup-blocked':
+      return 'Popup blocked. Trying redirect sign-in instead.';
+    case 'auth/unauthorized-domain':
+      return `This domain (${host}) is not authorized in Firebase Auth. Add it in Firebase Console > Authentication > Settings > Authorized domains.`;
+    case 'auth/operation-not-allowed':
+      return 'Google sign-in is disabled. Enable Google provider in Firebase Authentication > Sign-in method.';
+    case 'auth/network-request-failed':
+      return 'Network error during sign-in. Check your connection and try again.';
+    default:
+      return err?.message || 'Authentication failed.';
   }
-  return context;
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   const isConfigured = isFirebaseConfigured();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(isConfigured);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!isConfigured || !auth) {
-      setLoading(false);
-      return;
+      return undefined;
     }
 
+    let isActive = true;
+
+    getRedirectResult(auth).catch((err) => {
+      if (isActive) {
+        setError(getFriendlyAuthError(err));
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!isActive) return;
       setUser(user);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
   }, [isConfigured]);
 
   const signInWithGoogle = async () => {
@@ -48,7 +69,13 @@ export const AuthProvider = ({ children }) => {
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
     } catch (err) {
-      setError(err.message);
+      // Popup-based auth is blocked in some environments (Safari, strict privacy, in-app browsers).
+      if (err?.code === 'auth/popup-blocked' || err?.code === 'auth/operation-not-supported-in-this-environment') {
+        await signInWithRedirect(auth, googleProvider);
+        return null;
+      }
+
+      setError(getFriendlyAuthError(err));
       throw err;
     }
   };
@@ -59,7 +86,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await firebaseSignOut(auth);
     } catch (err) {
-      setError(err.message);
+      setError(getFriendlyAuthError(err));
       throw err;
     }
   };
@@ -84,5 +111,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export default AuthContext;
