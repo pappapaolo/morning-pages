@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -104,6 +104,11 @@ const Editor = ({
   isYesterday = false,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const editor = useEditor({
     extensions: [
@@ -121,12 +126,12 @@ const Editor = ({
     onFocus: () => setIsFocused(true),
     onBlur: () => setIsFocused(false),
     onUpdate: ({ editor: instance }) => {
-      if (!onChange) return;
+      if (!onChangeRef.current) return;
       const text = instance.getText({ blockSeparator: '\n' }).replace(/\u00a0/g, ' ');
       const html = instance.getHTML();
-      onChange({ text, html });
+      onChangeRef.current({ text, html });
     },
-  }, [onChange]);
+  }, []);
 
   useEffect(() => {
     if (!editor) return;
