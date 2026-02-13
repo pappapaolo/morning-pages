@@ -102,6 +102,7 @@ const Editor = ({
   programProgress,
   totalDays = 1,
   isYesterday = false,
+  activeDateKey,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const onChangeRef = useRef(onChange);
@@ -144,11 +145,29 @@ const Editor = ({
     }
   }, [editor, valueHtml]);
 
+  useEffect(() => {
+    if (!editor) return;
+
+    const rafId = window.requestAnimationFrame(() => {
+      if (!editor.isDestroyed) {
+        editor.commands.focus('end');
+      }
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
+  }, [editor, activeDateKey]);
+
   const showPlaceholder = !plainText || plainText.trim() === '';
   const isFirstDay = programProgress.week === 1 && programProgress.day === 1;
+  const handleContainerClick = (event) => {
+    if (!editor) return;
+    if (event.target === event.currentTarget) {
+      editor.commands.focus('end');
+    }
+  };
 
   return (
-    <div className="editor-container" onClick={() => editor?.commands.focus('end')}>
+    <div className="editor-container" onClick={handleContainerClick}>
       {showPlaceholder && (
         <div className={`placeholder-overlay ${isFocused ? 'dimmed' : ''} ${!isFirstDay ? 'minimal' : ''}`}>
           {isFirstDay ? (

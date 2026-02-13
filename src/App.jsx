@@ -577,6 +577,7 @@ function App() {
             programProgress={programProgress}
             totalDays={totalDays}
             isYesterday={isViewingYesterday}
+            activeDateKey={currentDateKey}
           />
 
           {isDone && (
