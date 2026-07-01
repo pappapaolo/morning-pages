@@ -230,7 +230,7 @@ const Editor = ({
           max-width: 680px;
         }
         .placeholder-overlay strong {
-          font-weight: bold;
+          font-weight: 600;
           color: var(--color-text);
         }
         .footnote {

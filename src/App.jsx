@@ -698,7 +698,7 @@ function App() {
             font-size: 1.15rem;
             color: var(--color-text);
             margin: 0;
-            font-weight: normal;
+            font-weight: 600;
             letter-spacing: normal;
         }
         .header-streak {

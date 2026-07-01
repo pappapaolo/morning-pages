@@ -79,9 +79,9 @@ html {
   /* Sidebar overlays content - no shift needed */
 }
 
-/* Reduce visual weight of bold in Merriweather */
+/* Render bold text as semibold rather than full weight */
 strong, b {
-  opacity: 0.9;
+  font-weight: 600;
 }
 
 .header {
