@@ -41,11 +41,13 @@ const Sidebar = ({
     useEffect(() => {
         if (!isOpen) return undefined;
 
-        const timer = setTimeout(() => {
-            loadEntries();
-        }, 0);
+        const timer = setTimeout(loadEntries, 0);
+        const unsubscribe = storage.subscribe(loadEntries);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            unsubscribe();
+        };
     }, [isOpen, isDesktop, currentDate]);
 
     const handleExportBackup = async () => {

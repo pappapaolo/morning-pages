@@ -53,6 +53,8 @@ function App() {
 
   // Load data
   useEffect(() => {
+    let isActive = true;
+
     const init = async () => {
       setIsLoading(true); // Ensure loading state while fetching
 
@@ -61,6 +63,7 @@ function App() {
       setStartWordCount(0);
 
       const savedEntry = await storage.getEntryData(currentDateKey);
+      if (!isActive) return;
       const savedText = savedEntry.content || '';
       const savedHtml = savedEntry.contentHtml || savedText;
 
@@ -116,7 +119,17 @@ function App() {
       setIsLoading(false);
     };
     init();
+
+    return () => {
+      isActive = false;
+    };
   }, [currentDateKey]);
+
+  // Ask the browser to protect IndexedDB from automatic storage eviction where
+  // supported. Cloud sync remains the durable cross-device source of truth.
+  useEffect(() => {
+    storage.requestPersistentStorage();
+  }, []);
 
   // Auto-redirect to yesterday if incomplete (Run once on mount)
   useEffect(() => {
@@ -161,29 +174,26 @@ function App() {
 
     // Get current local entry for this date
     const localEntry = await storage.getEntryData(dateStr);
+    const resolvedEntry = syncService.mergeData(
+      { [dateStr]: localEntry },
+      { [dateStr]: cloudEntry }
+    )[dateStr];
     const localContent = localEntry.content || '';
     const localContentHtml = localEntry.contentHtml || localContent;
-    const cloudContent = cloudEntry.content || '';
-    const cloudContentHtml = cloudEntry.contentHtml || cloudContent;
+    const resolvedContent = resolvedEntry.content || '';
+    const resolvedHtml = resolvedEntry.contentHtml || resolvedContent;
 
-    // Only update if cloud is actually different and newer
-    if (cloudContent !== localContent || cloudContentHtml !== localContentHtml) {
-      // Save to local storage
-      await storage.saveEntry(dateStr, cloudContent, cloudContentHtml);
+    if (
+      resolvedContent !== localContent ||
+      resolvedHtml !== localContentHtml ||
+      resolvedEntry.lastUpdated > localEntry.lastUpdated
+    ) {
+      await storage.saveEntryData(dateStr, resolvedEntry);
 
-      // If this is the current date being edited, update the UI
       if (dateStr === currentDateKey) {
-        // Check if cloud is newer than what we have
-        const localData = await storage.exportAllData();
-        const localEntry = localData.entries[dateStr];
-        const localTime = localEntry?.lastUpdated || 0;
-        const cloudTime = cloudEntry.lastUpdated || 0;
-
-        if (cloudTime > localTime) {
-          setText(cloudContent);
-          setTextHtml(cloudContentHtml);
-          setWordCount(calculateWordCount(cloudContent));
-        }
+        setText(resolvedContent);
+        setTextHtml(resolvedHtml);
+        setWordCount(calculateWordCount(resolvedContent));
       }
     }
   }, [currentDateKey]);
@@ -297,8 +307,6 @@ function App() {
 
 
     const timeoutId = setTimeout(async () => {
-      await storage.saveEntry(currentDateKey, text, textHtml);
-
       // Sync to cloud if logged in
       if (user && isFirebaseConfigured) {
         try {
@@ -344,6 +352,12 @@ function App() {
     setText(safeText);
     setTextHtml(safeHtml);
     setWordCount(nextWordCount);
+
+    // Persist every editor update immediately. storage.saveEntry writes a
+    // synchronous recovery copy first, then serializes the IndexedDB writes.
+    void storage.saveEntry(currentDateKey, safeText, safeHtml).catch((error) => {
+      console.error('Local save failed; recovery copy retained:', error);
+    });
   };
 
   const desktopQuery = '(min-width: 1024px)';

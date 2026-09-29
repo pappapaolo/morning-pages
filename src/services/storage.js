@@ -1,8 +1,28 @@
 import { get, set, keys } from 'idb-keyval';
 
 const STORE_KEY_PREFIX = 'morning_page_';
+const RECOVERY_KEY_PREFIX = 'morning_page_recovery_';
+const listeners = new Set();
+const pendingWrites = new Map();
+const lastIssuedTimestamps = new Map();
 
 const getDateKey = (dateStr) => `${STORE_KEY_PREFIX}${dateStr}`;
+const getRecoveryKey = (dateStr) => `${RECOVERY_KEY_PREFIX}${dateStr}`;
+
+const emitChange = (dateStr) => {
+    listeners.forEach((listener) => listener(dateStr));
+};
+
+const getRecoveryEntry = (dateStr) => {
+    if (typeof window === 'undefined') return null;
+
+    try {
+        const value = window.localStorage.getItem(getRecoveryKey(dateStr));
+        return value ? JSON.parse(value) : null;
+    } catch {
+        return null;
+    }
+};
 
 const stripHtml = (value = '') =>
     value
@@ -42,13 +62,67 @@ const normalizeEntry = (rawEntry) => {
 };
 
 export const storage = {
-    async saveEntry(dateStr, content, contentHtml = content) {
+    async saveEntry(dateStr, content, contentHtml = content, lastUpdated = null) {
+        const issuedTimestamp = lastUpdated || Math.max(
+            Date.now(),
+            (lastIssuedTimestamps.get(dateStr) || 0) + 1
+        );
+        lastIssuedTimestamps.set(dateStr, issuedTimestamp);
+
         const entry = {
             content,
             contentHtml,
-            lastUpdated: Date.now() // timestamp
+            lastUpdated: issuedTimestamp
         };
-        await set(getDateKey(dateStr), entry);
+
+        // Keep a synchronous crash-recovery copy before the async IndexedDB write.
+        // This prevents a quick refresh, tab close, or date switch from losing the
+        // last few keystrokes.
+        if (typeof window !== 'undefined') {
+            try {
+                window.localStorage.setItem(getRecoveryKey(dateStr), JSON.stringify(entry));
+            } catch {
+                // IndexedDB remains the primary store if localStorage is unavailable/full.
+            }
+        }
+
+        const previousWrite = pendingWrites.get(dateStr) || Promise.resolve();
+        const write = previousWrite
+            .catch(() => {})
+            .then(async () => {
+                await set(getDateKey(dateStr), entry);
+
+                if (typeof window !== 'undefined') {
+                    const recovery = getRecoveryEntry(dateStr);
+                    if (recovery?.lastUpdated === entry.lastUpdated) {
+                        window.localStorage.removeItem(getRecoveryKey(dateStr));
+                    }
+                }
+
+                emitChange(dateStr);
+            });
+
+        pendingWrites.set(dateStr, write);
+
+        try {
+            await write;
+        } finally {
+            if (pendingWrites.get(dateStr) === write) {
+                pendingWrites.delete(dateStr);
+            }
+        }
+
+        return entry;
+    },
+
+    async saveEntryData(dateStr, rawEntry) {
+        const entry = normalizeEntry(rawEntry);
+        return this.saveEntry(
+            dateStr,
+            entry.content,
+            entry.contentHtml,
+            entry.lastUpdated || Date.now()
+        );
     },
 
     async getEntry(dateStr) {
@@ -57,7 +131,12 @@ export const storage = {
     },
 
     async getEntryData(dateStr) {
-        return normalizeEntry(await get(getDateKey(dateStr)));
+        const storedEntry = normalizeEntry(await get(getDateKey(dateStr)));
+        const recoveryEntry = normalizeEntry(getRecoveryEntry(dateStr));
+
+        return recoveryEntry.lastUpdated > storedEntry.lastUpdated
+            ? recoveryEntry
+            : storedEntry;
     },
 
     async getAllKeys() {
@@ -115,6 +194,8 @@ export const storage = {
     },
 
     async exportAllData() {
+        await Promise.all([...pendingWrites.values()].map((write) => write.catch(() => {})));
+
         const allKeys = await keys();
         const dateKeys = allKeys.filter(k => k.startsWith(STORE_KEY_PREFIX));
 
@@ -143,6 +224,7 @@ export const storage = {
         for (const [dateStr, data] of Object.entries(entries)) {
             const key = getDateKey(dateStr);
             await set(key, normalizeEntry(data));
+            emitChange(dateStr);
             imported++;
         }
 
@@ -161,5 +243,22 @@ export const storage = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    },
+
+    subscribe(listener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+    },
+
+    async requestPersistentStorage() {
+        if (typeof navigator === 'undefined' || !navigator.storage?.persist) {
+            return false;
+        }
+
+        try {
+            return await navigator.storage.persist();
+        } catch {
+            return false;
+        }
     }
 };

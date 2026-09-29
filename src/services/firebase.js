@@ -1,5 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import {
+  browserLocalPersistence,
+  getAuth,
+  GoogleAuthProvider,
+  setPersistence
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Firebase configuration - these should be set in your .env file
@@ -30,6 +35,11 @@ let googleProvider = null;
 if (isFirebaseConfigured()) {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
+  // Make sign-in survive browser restarts explicitly. Firebase defaults to local
+  // persistence in browsers, but setting it removes ambiguity across environments.
+  setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.warn('Could not enable persistent sign-in:', error);
+  });
   db = getFirestore(app);
   googleProvider = new GoogleAuthProvider();
 }
