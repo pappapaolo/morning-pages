@@ -1,0 +1,28 @@
+# Morning Pages
+
+> Morning Pages is a free online writing app for the daily Morning Pages exercise: three pages, approximated as 750 typed words, of uncensored stream-of-consciousness writing.
+
+Canonical site: https://www.morningpages.cc/
+
+## What the app does
+
+- Provides a quiet, distraction-free 750-word editor.
+- Saves writing locally as it is typed, with crash recovery.
+- Offers optional Google sign-in for private Firestore sync across devices.
+- Keeps a searchable history of dated entries and tracks daily streaks.
+- Supports JSON export and import for personal backups.
+- Is free to use.
+
+## Privacy and accuracy
+
+- Entries stay in the browser unless the writer signs in to sync.
+- Signed-in entries are stored under that user's Firebase account ID and protected by per-user Firestore rules.
+- Entries are not end-to-end encrypted; users should not treat the app as a zero-knowledge vault.
+- The app is inspired by the Morning Pages practice popularized by Julia Cameron's The Artist's Way and is not presented as an official Julia Cameron product.
+
+## Useful pages
+
+- App: https://www.morningpages.cc/
+- Morning Pages guide and FAQ: https://www.morningpages.cc/guide
+- Privacy notes: https://www.morningpages.cc/privacy
+- Source code: https://github.com/pappapaolo/morning-pages

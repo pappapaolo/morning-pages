@@ -1,0 +1,17 @@
+{
+  "name": "Morning Pages",
+  "short_name": "Morning Pages",
+  "description": "A private, distraction-free editor for writing 750 words every morning.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fcfcfc",
+  "theme_color": "#fcfcfc",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "250x250",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

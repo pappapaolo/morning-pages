@@ -119,7 +119,7 @@ const Sidebar = ({
                         onImportComplete={onImportComplete}
                     />
                 </div>
-                <button className="about-link" onClick={onOpenAbout}>About & SEO</button>
+                <button className="about-link" onClick={onOpenAbout}>How Morning Pages works</button>
             </div>
 
             <style>{`

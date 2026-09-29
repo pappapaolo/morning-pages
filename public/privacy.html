@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy and Data Saving — Morning Pages</title>
+  <meta name="description" content="Plain-language details about how Morning Pages saves entries locally, syncs signed-in writing, handles analytics, and supports personal backups." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://www.morningpages.cc/privacy" />
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <link rel="stylesheet" href="/seo.css" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Morning Pages" />
+  <meta property="og:url" content="https://www.morningpages.cc/privacy" />
+  <meta property="og:title" content="Privacy and Data Saving — Morning Pages" />
+  <meta property="og:description" content="How your Morning Pages are saved locally and synced when you sign in." />
+  <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Main navigation">
+    <a href="/">Morning Pages</a>
+    <div class="nav-links"><a href="/guide">Guide</a><a href="/">Write</a></div>
+  </nav>
+
+  <main class="page privacy">
+    <header class="hero">
+      <p class="eyebrow">Plain language, no fog</p>
+      <h1>Your words are yours.</h1>
+      <p class="lede">Morning Pages is designed around private writing. Here is exactly where your entries go, what sync changes, and what “private” does—and does not—mean.</p>
+      <p class="fine-print">Last updated September 29, 2026.</p>
+    </header>
+
+    <aside class="section-number">01 · Without an account</aside>
+    <section class="content-section">
+      <h2>Local by default</h2>
+      <p>When you write without signing in, your entries are saved in your browser on that device. Morning Pages uses browser storage for the durable copy and a short-lived recovery copy so a quick refresh or closed tab does not eat the final words you typed.</p>
+      <p>Local browser data can still disappear if you clear site data, use private browsing, reset the browser, or lose the device. Export a JSON backup if the writing matters to you.</p>
+    </section>
+
+    <aside class="section-number">02 · With an account</aside>
+    <section class="content-section">
+      <h2>Optional private sync</h2>
+      <p>If you choose Google sign-in, Google provides basic account details needed to authenticate you. Your entries are then copied to Firebase Firestore under your unique account ID so you can recover history and use another device.</p>
+      <p>Firestore security rules restrict each signed-in user to their own entry path. Entries are encrypted in transit and by the cloud provider at rest, but they are <strong>not end-to-end encrypted</strong>. Morning Pages should not be treated as a zero-knowledge vault for information that would cause serious harm if exposed.</p>
+      <p>Signing out does not automatically erase the local browser copy. This prevents accidental data loss, but it also means you should clear site data when leaving a shared device.</p>
+    </section>
+
+    <aside class="section-number">03 · Measurement</aside>
+    <section class="content-section">
+      <h2>What gets measured</h2>
+      <p>The site uses Vercel Web Analytics to understand basic traffic such as page views and referrers. Journal text is not sent to analytics. Morning Pages does not sell journal entries or use them to train AI models.</p>
+      <p>Infrastructure providers—including Vercel, Google Firebase, and Google Authentication—process the technical data required to host the site, authenticate accounts, and provide optional sync under their own terms.</p>
+    </section>
+
+    <aside class="section-number">04 · Your controls</aside>
+    <section class="content-section">
+      <h2>Back up and move your writing</h2>
+      <p>The sidebar includes export and import controls. Export creates a JSON file containing your dated entries. Keep that file somewhere private; anyone with the file can read its contents.</p>
+      <p>The app is open source, so its saving and sync behavior can be inspected directly on <a href="https://github.com/pappapaolo/morning-pages">GitHub</a>.</p>
+      <div class="button-row"><a class="button" href="/">Return to the editor</a><a class="quiet-link" href="/guide">Read the guide</a></div>
+    </section>
+  </main>
+
+  <footer class="footer"><span>Morning Pages · Free online writing tool</span><span><a href="/">Write</a> · <a href="/guide">Guide</a> · <a href="https://github.com/pappapaolo/morning-pages">Source</a></span></footer>
+</body>
+</html>

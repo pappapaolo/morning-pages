@@ -22,7 +22,14 @@ const AboutModal = ({ onClose }) => {
                     <li><strong>Be Honest:</strong> No one else will read this.</li>
                 </ul>
 
-                <p className="footer-note">Inspired by <em>The Artist's Way</em> by Julia Cameron.</p>
+                <p className="footer-note">
+                    Inspired by <em>The Artist's Way</em> by Julia Cameron. Independent and not an official Julia Cameron product.
+                </p>
+
+                <div className="about-links">
+                    <a href="/guide">Read the Morning Pages guide</a>
+                    <a href="/privacy">Privacy &amp; data saving</a>
+                </div>
             </div>
 
             <style>{`
@@ -68,6 +75,17 @@ const AboutModal = ({ onClose }) => {
             color: var(--color-dim);
             border-top: 1px solid var(--color-border);
             padding-top: 1rem;
+        }
+        .about-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem 1.25rem;
+            font-family: var(--font-ui);
+            font-size: 0.85rem;
+        }
+        .about-links a {
+            color: var(--color-text);
+            text-underline-offset: 0.2em;
         }
       `}</style>
         </div>
